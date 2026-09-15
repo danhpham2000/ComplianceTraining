@@ -4,7 +4,7 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-ROOT_DIR = Path(__file__).resolve().parents[4]
+CONFIG_PATH = Path(__file__).resolve()
 
 
 class Settings(BaseSettings):
@@ -43,6 +43,6 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    env_files = [ROOT_DIR / ".env", Path.cwd() / ".env"]
-    existing = [path for path in env_files if path.exists()]
+    candidates = [Path.cwd() / ".env", *(parent / ".env" for parent in CONFIG_PATH.parents)]
+    existing = list(dict.fromkeys(path for path in candidates if path.exists()))
     return Settings(_env_file=existing or None)
