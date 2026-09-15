@@ -2,7 +2,20 @@
 
 import { getStoredToken } from "@/lib/auth-storage";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+const LOCAL_API_BASE = "http://127.0.0.1:8000/api/v1";
+const PRODUCTION_API_BASE = "/api/v1";
+
+function resolveApiBase() {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    return LOCAL_API_BASE;
+  }
+  return PRODUCTION_API_BASE;
+}
+
+export const API_BASE = resolveApiBase();
 
 export class ApiError extends Error {
   status: number;
