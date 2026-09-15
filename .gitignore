@@ -1,0 +1,15 @@
+.DS_Store
+.env.local
+.pytest_cache/
+.ruff_cache/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+apps/web/.next/
+apps/web/node_modules/
+apps/web/public/generated/
+apps/api/.venv/
+apps/api/.mypy_cache/
+apps/api/htmlcov/
+.env

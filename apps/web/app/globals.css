@@ -1,0 +1,280 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --radius: 1rem;
+  --background: #fbfbfd;
+  --foreground: #24201c;
+  --card: #ffffff;
+  --card-foreground: #24201c;
+  --popover: #ffffff;
+  --popover-foreground: #24201c;
+  --primary: #f38820;
+  --primary-foreground: #fffaf5;
+  --secondary: #f5ede4;
+  --secondary-foreground: #413932;
+  --muted: #f3ebe1;
+  --muted-foreground: #756a5d;
+  --accent: #fff0df;
+  --accent-foreground: #9a5514;
+  --destructive: #c74b33;
+  --border: rgba(36, 32, 28, 0.12);
+  --input: rgba(36, 32, 28, 0.12);
+  --ring: rgba(243, 136, 32, 0.45);
+  --chart-1: #f38820;
+  --chart-2: #c86e14;
+  --chart-3: #404040;
+  --chart-4: #8f8881;
+  --chart-5: #f5d1aa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  color-scheme: light;
+  background:
+    radial-gradient(circle at top, rgba(243, 136, 32, 0.06), transparent 28%),
+    var(--background);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: rgba(219, 108, 66, 0.22);
+}
+
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+.section-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.brand-hero {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(255, 245, 234, 0.88)),
+    linear-gradient(135deg, rgba(243, 136, 32, 0.04), rgba(200, 110, 20, 0.08));
+}
+
+.brand-outline {
+  border: 1px solid rgba(243, 136, 32, 0.18);
+}
+
+.course-player-shell {
+  overflow: hidden;
+  border: 1px solid rgba(125, 140, 165, 0.14);
+  border-radius: 1.55rem;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(31, 24, 16, 0.08);
+}
+
+.course-player-frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(circle at top, rgba(243, 136, 32, 0.14), transparent 48%),
+    linear-gradient(180deg, #eef3f9, #f7f9fc);
+}
+
+.course-player-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.course-player-preview {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background:
+    radial-gradient(circle at top, rgba(243, 136, 32, 0.18), transparent 46%),
+    linear-gradient(145deg, #1d232d, #0f141c);
+  text-align: left;
+}
+
+.course-player-preview-backdrop {
+  position: absolute;
+  inset: -4%;
+  background-position: center;
+  background-size: cover;
+  opacity: 0.16;
+  filter: blur(10px) saturate(0.8);
+  transform: scale(1.08);
+}
+
+.course-player-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(12, 16, 22, 0.16), rgba(12, 16, 22, 0.7)),
+    linear-gradient(180deg, transparent 25%, rgba(12, 16, 22, 0.36) 100%);
+}
+
+.course-player-preview-content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  max-width: 440px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.7rem;
+}
+
+.course-player-preview-pill {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.course-player-preview-title {
+  margin-top: 1rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  color: #ffffff;
+}
+
+.course-player-preview-body {
+  margin-top: 0.75rem;
+  max-width: 28rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.course-player-preview-button {
+  position: absolute;
+  right: 1.7rem;
+  bottom: 1.7rem;
+  z-index: 1;
+  display: inline-flex;
+  height: 4.4rem;
+  width: 4.4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff9f43, #f38820);
+  color: #ffffff;
+  box-shadow: 0 22px 50px rgba(243, 136, 32, 0.34);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.course-player-preview:hover .course-player-preview-button {
+  transform: scale(1.04);
+  box-shadow: 0 26px 58px rgba(243, 136, 32, 0.4);
+}
+
+.course-player-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(125, 140, 165, 0.14);
+  padding: 0.9rem 1rem 1rem;
+  background: linear-gradient(180deg, rgba(251, 251, 253, 0.92), #ffffff);
+}
+
+.course-player-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #24201c;
+}
+
+.course-player-caption {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8e9aae;
+}
+
+@media (max-width: 640px) {
+  .course-player-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .course-player-preview-content {
+    padding: 1.2rem;
+  }
+
+  .course-player-preview-title {
+    font-size: 1.25rem;
+  }
+
+  .course-player-preview-body {
+    font-size: 0.86rem;
+  }
+
+  .course-player-preview-button {
+    right: 1.2rem;
+    bottom: 1.2rem;
+    height: 3.7rem;
+    width: 3.7rem;
+  }
+}
+
+@media (min-width: 960px) {
+  .section-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}

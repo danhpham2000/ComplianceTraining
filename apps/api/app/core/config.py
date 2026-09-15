@@ -1,0 +1,48 @@
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ROOT_DIR = Path(__file__).resolve().parents[4]
+
+
+class Settings(BaseSettings):
+    app_name: str = "Compliance Training API"
+    api_v1_prefix: str = "/api/v1"
+    web_app_url: str = "http://localhost:3000"
+    database_url: str
+    openai_api_key: str | None = None
+    openai_tts_model: str = "gpt-4o-mini-tts"
+    openai_tts_voice: str = "sage"
+    openai_video_model: str = "sora-2"
+    openai_video_poll_interval_ms: int = 2000
+    openrouter_api_key: str | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "openrouter/free"
+    firecrawl_api_key: str | None = None
+    resend_api_key: str | None = None
+    resend_from_email: str = "NextPhase <onboarding@resend.dev>"
+    resend_reply_to: str | None = None
+    openai_model: str = "gpt-5.4"
+    app_env: str = "development"
+    allowed_email_domain: str = "gmail.com"
+    session_duration_days: int = 7
+    verification_code_minutes: int = 15
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+    model_config = SettingsConfigDict(extra="ignore")
+
+    @property
+    def email_delivery_enabled(self) -> bool:
+        return bool(self.resend_api_key)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    env_files = [ROOT_DIR / ".env", Path.cwd() / ".env"]
+    existing = [path for path in env_files if path.exists()]
+    return Settings(_env_file=existing or None)
