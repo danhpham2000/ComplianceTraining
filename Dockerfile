@@ -11,5 +11,6 @@ COPY apps/api/pyproject.toml apps/api/uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY apps/api/app ./app
+COPY apps/web/public/nextphase-logo.png ./apps/web/public/nextphase-logo.png
 
 CMD ["/bin/sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -7,6 +7,21 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 CONFIG_PATH = Path(__file__).resolve()
 
 
+def _discover_root_dir() -> Path:
+    candidates = [Path.cwd(), *CONFIG_PATH.parents]
+    for marker in ["package.json", "apps/web/public"]:
+        for candidate in candidates:
+            if (candidate / marker).exists():
+                return candidate
+    for candidate in candidates:
+        if (candidate / "pyproject.toml").exists():
+            return candidate
+    return Path.cwd()
+
+
+ROOT_DIR = _discover_root_dir()
+
+
 class Settings(BaseSettings):
     app_name: str = "Compliance Training API"
     api_v1_prefix: str = "/api/v1"
