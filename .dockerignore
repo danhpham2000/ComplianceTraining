@@ -1,0 +1,12 @@
+.git
+.env
+.env.local
+.DS_Store
+node_modules
+apps/web/node_modules
+apps/web/.next
+apps/web/public/generated
+apps/api/.venv
+apps/api/.pytest_cache
+__pycache__
+*.pyc
