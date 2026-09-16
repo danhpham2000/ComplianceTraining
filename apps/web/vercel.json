@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --include=optional",
+  "installCommand": "npm install --include=optional && npm install --no-save lightningcss-linux-x64-gnu@1.32.0",
   "rewrites": [
     {
       "source": "/api/v1/:path*",

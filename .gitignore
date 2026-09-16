@@ -13,3 +13,4 @@ apps/api/.venv/
 apps/api/.mypy_cache/
 apps/api/htmlcov/
 .env
+.vercel
