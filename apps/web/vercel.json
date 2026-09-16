@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --include=optional && npm install --no-save lightningcss-linux-x64-gnu@1.32.0",
+  "installCommand": "npm install --include=optional && npm install --no-save lightningcss-linux-x64-gnu@1.32.0 @tailwindcss/oxide-linux-x64-gnu@4.3.3",
   "rewrites": [
     {
       "source": "/api/v1/:path*",
