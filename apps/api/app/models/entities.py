@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import Uuid
 
@@ -101,6 +101,22 @@ class TrainingCourse(UUIDTimestampMixin, Base):
         cascade="all, delete-orphan",
         order_by="TrainingVersion.version_number",
     )
+    generated_assets: Mapped[list["GeneratedAsset"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+    )
+
+
+class GeneratedAsset(UUIDTimestampMixin, Base):
+    __tablename__ = "generated_assets"
+    __table_args__ = (UniqueConstraint("course_id", "filename"),)
+
+    course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("training_courses.id"), nullable=False)
+    filename: Mapped[str] = mapped_column(String(120), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+
+    course: Mapped["TrainingCourse"] = relationship(back_populates="generated_assets")
 
 
 class TrainingVersion(UUIDTimestampMixin, Base):

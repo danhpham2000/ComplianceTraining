@@ -50,6 +50,7 @@ from app.services.notifications import (
     notify_training_build_completed,
     notify_training_build_failed,
 )
+from app.services.generated_assets import persist_generated_training_assets
 from app.services.research_training import build_research_training, remove_generated_training_assets
 
 
@@ -123,6 +124,7 @@ def _run_research_training_build(
             )
         )
         version.content_sources.append(source)
+        persist_generated_training_assets(db, training_id=course.id)
 
         for index, objective in enumerate(generated.learning_objectives, start=1):
             version.learning_objectives.append(LearningObjective(text=objective, sort_order=index))
