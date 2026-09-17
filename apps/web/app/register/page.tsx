@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/api";
 import { setPendingVerification } from "@/lib/auth-storage";
 import { PendingVerification } from "@/lib/types";
@@ -19,12 +18,6 @@ function getHomeRoute(role: string) {
   return role === "EMPLOYEE" ? "/employee" : "/dashboard";
 }
 
-const roleOptions = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "MANAGER", label: "Manager" },
-  { value: "EMPLOYEE", label: "Employee" },
-] as const;
-
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,12 +25,6 @@ function RegisterPageContent() {
   const [name, setName] = useState(() => searchParams.get("name") ?? "");
   const [email, setEmail] = useState(() => searchParams.get("email") ?? "");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<(typeof roleOptions)[number]["value"]>(() => {
-    const invitedRole = searchParams.get("role");
-    return roleOptions.some((option) => option.value === invitedRole)
-      ? (invitedRole as (typeof roleOptions)[number]["value"])
-      : "ADMIN";
-  });
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -56,7 +43,7 @@ function RegisterPageContent() {
     try {
       const response = await apiRequest<PendingVerification>("/auth/register", {
         method: "POST",
-        body: { name, email, password, role },
+        body: { name, email, password, role: "EMPLOYEE" },
       });
       setPendingVerification({
         email: response.email,
@@ -82,7 +69,7 @@ function RegisterPageContent() {
         <CardHeader className="space-y-3 p-8">
           <CardTitle className="text-[1.85rem] tracking-[-0.04em]">Create account</CardTitle>
           <CardDescription className="text-sm leading-6">
-            Create an admin or employee account. Verification is required before access.
+            Create your workspace account. Verification is required before access.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-0">
@@ -111,22 +98,6 @@ function RegisterPageContent() {
               onChange={(event) => setPassword(event.target.value)}
               required
             />
-
-            <div className="space-y-2">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Workspace</p>
-              <Select value={role} onValueChange={(value: (typeof roleOptions)[number]["value"]) => setRole(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select access type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <Badge variant="default" className="rounded-full px-3 py-1 text-xs">
               Verified email required

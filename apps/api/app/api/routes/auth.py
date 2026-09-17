@@ -160,7 +160,13 @@ def register(payload: RegisterRequest, db: DBSession):
             OrganizationMember.user_id == user.id,
         )
     ).scalar_one_or_none()
-    target_role = existing_membership.role if existing_membership else payload.role
+    bootstrap_admin_email = settings.bootstrap_admin_email.strip().lower()
+    if existing_membership:
+        target_role = existing_membership.role
+    elif email == bootstrap_admin_email:
+        target_role = "ADMIN"
+    else:
+        target_role = "EMPLOYEE"
     upsert_membership(db, organization.id, user.id, target_role)
     db.commit()
     delivery_error = send_verification_email(email, code, expires_at, fail_silently=False)

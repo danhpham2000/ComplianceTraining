@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-5.4"
     app_env: str = "development"
     allowed_email_domain: str = "nextphase.ai"
+    bootstrap_admin_email: str = "danhp@nextphase.ai"
     session_duration_days: int = 7
     verification_code_minutes: int = 15
     cors_origins: list[str] = [
