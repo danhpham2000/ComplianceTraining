@@ -7,6 +7,10 @@
     {
       "source": "/api/v1/:path*",
       "destination": "https://compliance-training-api-production.up.railway.app/api/v1/:path*"
+    },
+    {
+      "source": "/generated/:path*",
+      "destination": "https://compliance-training-api-production.up.railway.app/generated/:path*"
     }
   ]
 }
