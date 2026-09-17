@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     resend_reply_to: str | None = None
     openai_model: str = "gpt-5.4"
     app_env: str = "development"
-    allowed_email_domain: str = "gmail.com"
+    allowed_email_domain: str = "nextphase.ai"
     session_duration_days: int = 7
     verification_code_minutes: int = 15
     cors_origins: list[str] = [

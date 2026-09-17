@@ -59,7 +59,7 @@ export default function LandingPage() {
               <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Login</p>
               <h1 className="text-3xl font-semibold tracking-[-0.04em] text-foreground md:text-4xl">Welcome back</h1>
               <p className="text-sm leading-6 text-muted-foreground">
-                Sign in with your verified `@gmail.com` account.
+                Sign in with your verified `@nextphase.ai` account.
               </p>
             </div>
             <Link href="/login" className={buttonVariants({ variant: "default", size: "lg" })}>
@@ -77,7 +77,7 @@ export default function LandingPage() {
               <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">Register</p>
               <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground md:text-4xl">Create access</h2>
               <p className="text-sm leading-6 text-muted-foreground">
-                New accounts stay limited to `@gmail.com` and require email verification.
+                New accounts stay limited to `@nextphase.ai` and require email verification.
               </p>
             </div>
             <Link href="/register" className={buttonVariants({ variant: "outline", size: "lg" })}>
