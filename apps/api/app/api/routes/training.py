@@ -51,7 +51,7 @@ from app.services.notifications import (
     notify_training_build_failed,
 )
 from app.services.generated_assets import persist_generated_training_assets
-from app.services.research_training import build_research_training, rebuild_lecture_video_from_segments, remove_generated_training_assets
+from app.services.research_training import build_research_training, remove_generated_training_assets
 
 
 router = APIRouter(tags=["training"])
@@ -202,45 +202,6 @@ def _launch_research_training_build(**kwargs) -> None:
         kwargs=kwargs,
         daemon=True,
         name=f"training-build-{kwargs.get('training_id')}",
-    )
-    worker.start()
-
-
-def _run_training_video_repair(*, training_id, organization_id) -> None:
-    db = SessionLocal()
-    try:
-        course = _load_training_for_build(db, training_id=training_id, organization_id=organization_id)
-        if not course or not course.versions:
-            return
-        version = course.versions[-1]
-        source = version.content_sources[0] if version.content_sources else None
-        transcript = source.transcripts[0] if source and source.transcripts else None
-        if not source or not transcript or not transcript.segments_json:
-            return
-
-        duration_seconds = rebuild_lecture_video_from_segments(
-            training_id=str(course.id),
-            title=course.title,
-            segments=transcript.segments_json,
-        )
-        source.source_url = f"/generated/trainings/{course.id}/lesson.mp4"
-        source.thumbnail_url = f"/generated/trainings/{course.id}/thumbnail.png"
-        source.duration_seconds = duration_seconds
-        persist_generated_training_assets(db, training_id=course.id)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
-
-def _launch_training_video_repair(**kwargs) -> None:
-    worker = threading.Thread(
-        target=_run_training_video_repair,
-        kwargs=kwargs,
-        daemon=True,
-        name=f"training-video-repair-{kwargs.get('training_id')}",
     )
     worker.start()
 
@@ -452,29 +413,6 @@ def get_training(training_id, db: DBSession, actor: CurrentActor):
         research_material=build_research_material(version),
     )
 
-
-@router.post("/training/{training_id}/repair-video", response_model=APIMessage, status_code=status.HTTP_202_ACCEPTED)
-def repair_training_video(training_id, db: DBSession, actor: CurrentActor):
-    require_roles(actor, "OWNER", "ADMIN", "MANAGER")
-    course = db.execute(
-        select(TrainingCourse)
-        .where(TrainingCourse.id == training_id, TrainingCourse.organization_id == actor.organization_id)
-        .options(
-            selectinload(TrainingCourse.versions)
-            .selectinload(TrainingVersion.content_sources)
-            .selectinload(ContentSource.transcripts),
-        )
-    ).scalar_one_or_none()
-    if not course:
-        raise HTTPException(status_code=404, detail="Training not found")
-    version = course.versions[-1] if course.versions else None
-    source = version.content_sources[0] if version and version.content_sources else None
-    transcript = source.transcripts[0] if source and source.transcripts else None
-    if not transcript or not transcript.segments_json:
-        raise HTTPException(status_code=400, detail="No transcript is available to rebuild this video.")
-
-    _launch_training_video_repair(training_id=course.id, organization_id=actor.organization_id)
-    return APIMessage(message="Video rebuild started. Refresh this page in a few minutes.")
 
 @router.post("/training/{training_id}/generate", response_model=TrainingDetailOut)
 def run_generation(training_id, payload: GenerateAssessmentIn, db: DBSession, actor: CurrentActor):

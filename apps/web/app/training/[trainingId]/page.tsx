@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, RefreshCw, Send, Trash2, Users } from "lucide-react";
+import { CheckCircle2, Send, Trash2, Users } from "lucide-react";
 import { CourseVideoPlayer } from "@/components/course-video-player";
 import { EmptyState } from "@/components/empty-state";
 import { usePersona } from "@/components/persona-provider";
@@ -29,7 +29,6 @@ export default function TrainingDetailPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [activeCitationSection, setActiveCitationSection] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [repairMessage, setRepairMessage] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["training", trainingId, persona.email],
@@ -73,17 +72,6 @@ export default function TrainingDetailPage() {
       router.push("/dashboard");
     },
   });
-  const repairVideo = useMutation({
-    mutationFn: () =>
-      apiRequest<{ message: string }>(`/training/${trainingId}/repair-video`, {
-        method: "POST",
-      }),
-    onSuccess: async (data) => {
-      setRepairMessage(data.message);
-      await query.refetch();
-    },
-  });
-
   const training = query.data;
   const isPublished = training?.status === "PUBLISHED";
   const isProcessing = training?.status === "PROCESSING";
@@ -238,35 +226,10 @@ export default function TrainingDetailPage() {
                       </Link>
                     </Button>
                   ) : null}
-                  {training?.content_source?.source_url ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-10 rounded-full px-4"
-                      disabled={repairVideo.isPending}
-                      onClick={() => {
-                        setRepairMessage(null);
-                        repairVideo.mutate();
-                      }}
-                    >
-                      {repairVideo.isPending ? <Spinner className="size-4" /> : <RefreshCw className="size-4" />}
-                      {repairVideo.isPending ? "Starting..." : "Rebuild video"}
-                    </Button>
-                  ) : null}
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:p-5">
-              {repairMessage ? (
-                <div className="rounded-[1.1rem] border border-primary/20 bg-[#fff8ef] px-4 py-3 text-sm text-[#7b654d]">
-                  {repairMessage}
-                </div>
-              ) : null}
-              {repairVideo.error ? (
-                <div className="rounded-[1.1rem] border border-destructive/20 bg-[#fff8f6] px-4 py-3 text-sm text-destructive">
-                  {repairVideo.error.message}
-                </div>
-              ) : null}
               {training?.content_source?.source_url ? (
                 <CourseVideoPlayer
                   url={training.content_source.source_url}

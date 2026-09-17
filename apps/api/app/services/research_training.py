@@ -338,81 +338,6 @@ def _render_training_video(*, training_id: str, title: str, brief, generation_mo
     }
 
 
-def rebuild_lecture_video_from_segments(*, training_id: str, title: str, segments: list[dict]) -> int:
-    asset_dir = GENERATED_ROOT / training_id
-    if asset_dir.exists():
-        shutil.rmtree(asset_dir, ignore_errors=True)
-    asset_dir.mkdir(parents=True, exist_ok=True)
-
-    concat_lines: list[str] = []
-    current_second = 0
-    for index, segment in enumerate(segments, start=1):
-        heading = str(segment.get("title") or (title if index == 1 else f"Section {index}"))
-        narration = str(segment.get("text") or "").strip()
-        bullets = [str(item).strip() for item in (segment.get("bullets") or []) if str(item).strip()]
-        example = str(segment.get("example") or "").strip()
-        citations = [str(item).strip() for item in (segment.get("citations") or []) if str(item).strip()]
-        if not narration:
-            continue
-
-        image_path = asset_dir / f"slide-{index:02d}.png"
-        audio_path = asset_dir / f"audio-{index:02d}.mp3"
-        chunk_path = asset_dir / f"chunk-{index:02d}.mp4"
-        _synthesize_speech(narration, audio_path)
-        duration = max(4, round(_probe_duration(audio_path)))
-        if index == 1:
-            _render_lecture_intro_frame(
-                image_path=image_path,
-                training_title=title,
-                summary=narration,
-                bullets=bullets,
-            )
-        else:
-            _render_lecture_frame(
-                image_path=image_path,
-                training_title=title,
-                heading=heading,
-                bullets=bullets,
-                example=example,
-                source_urls=citations,
-            )
-        _render_video_chunk(image_path=image_path, audio_path=audio_path, output_path=chunk_path, animated=False)
-        concat_lines.append(f"file '{chunk_path.name}'")
-        current_second += duration
-
-    if not concat_lines:
-        raise RuntimeError("No transcript segments were available to rebuild the video.")
-
-    concat_file = asset_dir / "concat.txt"
-    concat_file.write_text("\n".join(concat_lines), encoding="utf-8")
-    lesson_path = asset_dir / "lesson.mp4"
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            str(concat_file),
-            "-c",
-            "copy",
-            str(lesson_path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    first_slide = asset_dir / "slide-01.png"
-    if first_slide.exists():
-        shutil.copyfile(first_slide, asset_dir / "thumbnail.png")
-    else:
-        _extract_video_thumbnail(asset_dir / "lesson.mp4", asset_dir / "thumbnail.png")
-    return current_second
-
-
 def _render_lecture_intro_frame(
     *,
     image_path: Path,
@@ -425,65 +350,65 @@ def _render_lecture_intro_frame(
     draw.rounded_rectangle((34, 34, 1246, 686), radius=42, fill="#fffdf9", outline=BORDER, width=2)
     draw.ellipse((978, -92, 1360, 248), fill="#ffe0bd")
     draw.ellipse((-132, 526, 228, 850), fill="#fff0df")
-    draw.rounded_rectangle((82, 74, 342, 124), radius=25, fill=PRIMARY_SOFT)
+    draw.rounded_rectangle((82, 74, 308, 118), radius=22, fill=PRIMARY_SOFT)
 
-    badge_font = _load_font(20, bold=True)
-    heading_font = _select_heading_font(training_title, max_width=820, large=76, medium=66, small=58)
-    summary_font = _load_font(30)
-    summary_label_font = _load_font(21, bold=True)
-    focus_label_font = _load_font(16, bold=True)
-    focus_font = _load_font(22, bold=True)
-    step_font = _load_font(24, bold=True)
+    badge_font = _load_font(18, bold=True)
+    heading_font = _select_heading_font(training_title, max_width=730, large=58, medium=52, small=46)
+    summary_font = _load_font(25)
+    summary_label_font = _load_font(20, bold=True)
+    focus_label_font = _load_font(15, bold=True)
+    focus_font = _load_font(19, bold=True)
+    step_font = _load_font(23, bold=True)
 
-    draw.text((108, 88), "INTRODUCTION", fill=PRIMARY, font=badge_font)
+    draw.text((108, 87), "INTRODUCTION", fill=PRIMARY, font=badge_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
-        y=154,
-        lines=_wrap_text(training_title, heading_font, 820)[:2],
+        y=148,
+        lines=_wrap_text(training_title, heading_font, 730)[:2],
         font=heading_font,
         fill=INK,
-        line_height=78,
+        line_height=62,
     )
 
-    summary_top = max(326, heading_bottom + 34)
-    draw.text((88, summary_top - 34), "What this lesson covers", fill="#9a7b5c", font=summary_label_font)
-    draw.rounded_rectangle((82, summary_top, 842, summary_top + 168), radius=34, fill="#f7fbff", outline="#e2ebf4", width=2)
+    summary_top = max(304, heading_bottom + 30)
+    draw.text((88, summary_top - 32), "What this lesson covers", fill="#9a7b5c", font=summary_label_font)
+    draw.rounded_rectangle((82, summary_top, 820, summary_top + 150), radius=30, fill="#f7fbff", outline="#e2ebf4", width=2)
     _draw_wrapped_text(
         draw=draw,
         x=118,
-        y=summary_top + 34,
-        lines=_wrap_text(_format_slide_bullet(summary, max_chars=145), summary_font, 690)[:3],
+        y=summary_top + 28,
+        lines=_wrap_text(_format_slide_bullet(summary, max_chars=130), summary_font, 660)[:3],
         font=summary_font,
         fill="#56677f",
-        line_height=40,
+        line_height=34,
     )
 
-    draw.rounded_rectangle((890, 184, 1188, 512), radius=36, fill="#fff8f0", outline="#f0e4d8", width=2)
-    draw.text((924, 226), "The flow", fill="#9a7b5c", font=focus_label_font)
+    draw.rounded_rectangle((884, 194, 1188, 506), radius=34, fill="#fff8f0", outline="#f0e4d8", width=2)
+    draw.text((922, 228), "The flow", fill="#9a7b5c", font=focus_label_font)
     for index, step in enumerate(["Recognize risk", "Verify request", "Protect data"]):
-        y = 276 + index * 72
-        draw.ellipse((924, y, 972, y + 48), fill="#ffffff", outline="#f0d6bb", width=2)
-        draw.text((941, y + 10), str(index + 1), fill=PRIMARY, font=step_font)
+        y = 278 + index * 70
+        draw.ellipse((922, y, 970, y + 48), fill="#ffffff", outline="#f0d6bb", width=2)
+        draw.text((939, y + 10), str(index + 1), fill=PRIMARY, font=step_font)
         draw.text((994, y + 8), step, fill=INK, font=step_font)
 
     focus_items = bullets[:3] or ["Follow secure data habits."]
-    card_y = 548
+    card_y = 500
     for index, bullet in enumerate(focus_items[:3]):
-        card_x = 82 + index * 262
-        draw.rounded_rectangle((card_x, card_y, card_x + 238, card_y + 104), radius=26, fill="#ffffff", outline=BORDER, width=2)
-        draw.text((card_x + 24, card_y + 18), f"0{index + 1}", fill=PRIMARY, font=focus_label_font)
+        card_x = 82 + index * 272
+        draw.rounded_rectangle((card_x, card_y, card_x + 248, card_y + 86), radius=24, fill="#ffffff", outline=BORDER, width=2)
+        draw.text((card_x + 22, card_y + 16), f"0{index + 1}", fill=PRIMARY, font=focus_label_font)
         _draw_wrapped_text(
             draw=draw,
             x=card_x + 24,
-            y=card_y + 44,
-            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=42), focus_font, 190)[:2],
+            y=card_y + 42,
+            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=38), focus_font, 198)[:2],
             font=focus_font,
             fill=INK,
-            line_height=26,
+            line_height=23,
         )
 
-    _paste_logo_bottom_right(image, x=956, y=604)
+    _paste_logo_bottom_right(image, x=966, y=586)
     image.save(image_path)
 
 
@@ -500,33 +425,33 @@ def _render_lecture_frame(
     draw = ImageDraw.Draw(image)
     draw.rounded_rectangle((34, 34, 1246, 686), radius=42, fill="#fffdf9", outline=BORDER, width=2)
     draw.ellipse((1000, -70, 1322, 210), fill="#ffe6cf")
-    draw.rounded_rectangle((82, 72, 330, 122), radius=25, fill=PRIMARY_SOFT)
+    draw.rounded_rectangle((82, 72, 314, 118), radius=23, fill=PRIMARY_SOFT)
 
-    badge_font = _load_font(20, bold=True)
-    heading_font = _select_heading_font(heading, max_width=980, large=72, medium=64, small=56)
-    section_font = _load_font(22, bold=True)
-    bullet_font = _load_font(32, bold=True)
-    example_font = _load_font(27)
-    small_font = _load_font(17, bold=True)
+    badge_font = _load_font(18, bold=True)
+    heading_font = _select_heading_font(heading, max_width=810, large=56, medium=50, small=44)
+    section_font = _load_font(20, bold=True)
+    bullet_font = _load_font(27, bold=True)
+    example_font = _load_font(23)
+    small_font = _load_font(16, bold=True)
 
     draw.text((108, 86), "LESSON SECTION", fill=PRIMARY, font=badge_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
-        y=150,
-        lines=_wrap_text(heading, heading_font, 980)[:2],
+        y=146,
+        lines=_wrap_text(heading, heading_font, 810)[:2],
         font=heading_font,
         fill=INK,
-        line_height=76,
+        line_height=60,
     )
 
-    actions_top = max(314, heading_bottom + 34)
-    draw.text((88, actions_top - 34), "Key actions", fill="#9a7b5c", font=section_font)
-    draw.rounded_rectangle((82, actions_top, 830, actions_top + 210), radius=34, fill="#f7fbff", outline="#e2ebf4", width=2)
-    cursor_y = actions_top + 32
+    actions_top = max(292, heading_bottom + 30)
+    draw.text((88, actions_top - 32), "Key actions", fill="#9a7b5c", font=section_font)
+    draw.rounded_rectangle((82, actions_top, 826, actions_top + 210), radius=32, fill="#f7fbff", outline="#e2ebf4", width=2)
+    cursor_y = actions_top + 30
     for bullet in (bullets[:2] or ["Apply the recommended compliance habit."]):
-        bullet_lines = _wrap_text(_format_slide_bullet(bullet, max_chars=82), bullet_font, 640)[:2]
-        draw.ellipse((120, cursor_y + 11, 142, cursor_y + 33), fill=PRIMARY)
+        bullet_lines = _wrap_text(_format_slide_bullet(bullet, max_chars=78), bullet_font, 626)[:2]
+        draw.ellipse((120, cursor_y + 9, 140, cursor_y + 29), fill=PRIMARY)
         _draw_wrapped_text(
             draw=draw,
             x=168,
@@ -534,28 +459,28 @@ def _render_lecture_frame(
             lines=bullet_lines,
             font=bullet_font,
             fill=INK,
-            line_height=39,
+            line_height=34,
         )
-        cursor_y += len(bullet_lines) * 39 + 24
+        cursor_y += len(bullet_lines) * 34 + 22
 
     callout_text = example.strip() or (bullets[0] if bullets else training_title)
-    draw.rounded_rectangle((878, 230, 1186, 544), radius=36, fill="#fff8f0", outline="#f0e4d8", width=2)
-    draw.rounded_rectangle((910, 262, 1078, 308), radius=23, fill="#ffffff")
-    draw.text((936, 274), "EXAMPLE", fill=PRIMARY, font=small_font)
+    draw.rounded_rectangle((878, 218, 1186, 526), radius=34, fill="#fff8f0", outline="#f0e4d8", width=2)
+    draw.rounded_rectangle((910, 252, 1070, 296), radius=22, fill="#ffffff")
+    draw.text((936, 265), "EXAMPLE", fill=PRIMARY, font=small_font)
     _draw_wrapped_text(
         draw=draw,
         x=916,
-        y=346,
-        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=116), example_font, 228)[:5],
+        y=330,
+        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=110), example_font, 232)[:5],
         font=example_font,
         fill=INK,
-        line_height=34,
+        line_height=30,
     )
 
-    draw.rounded_rectangle((82, 570, 830, 644), radius=24, fill="#fff7ef", outline="#f0e0cf", width=2)
-    draw.text((112, 594), "Remember:", fill=PRIMARY, font=section_font)
-    draw.text((244, 594), _format_slide_bullet(bullets[0] if bullets else heading, max_chars=52), fill=INK, font=section_font)
-    _paste_logo_bottom_right(image, x=956, y=604)
+    draw.rounded_rectangle((82, 548, 826, 612), radius=24, fill="#fff7ef", outline="#f0e0cf", width=2)
+    draw.text((112, 570), "Remember:", fill=PRIMARY, font=section_font)
+    draw.text((242, 570), _format_slide_bullet(bullets[0] if bullets else heading, max_chars=50), fill=INK, font=section_font)
+    _paste_logo_bottom_right(image, x=966, y=586)
     image.save(image_path)
 
 
@@ -648,7 +573,6 @@ def _render_cartoon_frame(
     sub_font = _load_font(27)
     bubble_font = _load_font(26)
     caption_font = _load_font(22)
-    source_font = _load_font(18)
     badge_font = _load_font(18, bold=True)
 
     draw.rounded_rectangle((74, 76, 260, 116), radius=20, fill=(255, 255, 255, 235))
@@ -682,9 +606,6 @@ def _render_cartoon_frame(
     takeaway = shorten(bullets[0] if bullets else narration, width=118, placeholder="...")
     draw.rounded_rectangle((86, 604, 1196, 660), radius=22, fill=(255, 255, 255, 236))
     draw.text((118, 617), f"Today’s reminder: {takeaway}", fill=INK, font=caption_font)
-
-    sources = ", ".join(_source_labels(source_urls[:3])) or "Live research references"
-    draw.text((92, 668), sources, fill=MUTED, font=source_font)
     image.convert("RGB").save(image_path)
 
 

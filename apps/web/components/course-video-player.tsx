@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { CirclePlay, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +26,6 @@ export function CourseVideoPlayer({
   onWatchProgress,
   onVideoComplete,
 }: CourseVideoPlayerProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const nativeVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingIntervalRef = useRef<number | null>(null);
   const lastObservedTimeRef = useRef<number | null>(null);
@@ -131,48 +130,33 @@ export function CourseVideoPlayer({
 
   return (
     <div className="course-player-shell">
-      {isPlaying ? (
-        <div className="course-player-frame">
-          <video
-            ref={nativeVideoRef}
-            className="h-full w-full bg-black object-contain"
-            controls
-            autoPlay
-            playsInline
-            onPlay={beginTracking}
-            onPause={() => {
-              stopTracking();
-              flushSegment();
-            }}
-            onEnded={() => {
-              stopTracking();
-              const duration = Math.floor(nativeVideoRef.current?.duration ?? 0);
-              flushSegment(duration || undefined);
-              onVideoCompleteRef.current?.();
-            }}
-          >
-            <source src={url} />
-          </video>
-        </div>
-      ) : (
-        <button type="button" className="course-player-preview" onClick={() => setIsPlaying(true)}>
-          <div className="course-player-preview-backdrop" />
-          <div className="course-player-preview-overlay" />
-          <div className="course-player-preview-content">
-            <span className="course-player-preview-pill">Lesson video</span>
-            <h3 className="course-player-preview-title">{title}</h3>
-            <p className="course-player-preview-body">Start the assigned lesson inside the workspace.</p>
-          </div>
-          <span className="course-player-preview-button">
-            <CirclePlay className="size-7" />
-          </span>
-        </button>
-      )}
+      <div className="course-player-frame">
+        <video
+          ref={nativeVideoRef}
+          className="h-full w-full bg-black object-contain"
+          controls
+          preload="metadata"
+          playsInline
+          onPlay={beginTracking}
+          onPause={() => {
+            stopTracking();
+            flushSegment();
+          }}
+          onEnded={() => {
+            stopTracking();
+            const duration = Math.floor(nativeVideoRef.current?.duration ?? 0);
+            flushSegment(duration || undefined);
+            onVideoCompleteRef.current?.();
+          }}
+        >
+          <source src={url} />
+        </video>
+      </div>
 
       <div className="course-player-footer">
         <div>
           <p className="course-player-title">{title}</p>
-          <p className="course-player-caption">{isPlaying ? "Embedded lesson view" : "Click to start lesson"}</p>
+          <p className="course-player-caption">Embedded lesson view</p>
         </div>
 
         <Button
