@@ -3,6 +3,8 @@ import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from fastapi import HTTPException, status
+
 from app.core.config import get_settings
 
 
@@ -14,7 +16,14 @@ def normalize_email(email: str) -> str:
 
 
 def require_allowed_email(email: str) -> str:
-    return normalize_email(email)
+    normalized = normalize_email(email)
+    allowed_domain = settings.allowed_email_domain.strip().lower().lstrip("@")
+    if allowed_domain and not normalized.endswith(f"@{allowed_domain}"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Use your @{allowed_domain} email address.",
+        )
+    return normalized
 
 
 def hash_secret(value: str) -> str:
