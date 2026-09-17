@@ -338,6 +338,81 @@ def _render_training_video(*, training_id: str, title: str, brief, generation_mo
     }
 
 
+def rebuild_lecture_video_from_segments(*, training_id: str, title: str, segments: list[dict]) -> int:
+    asset_dir = GENERATED_ROOT / training_id
+    if asset_dir.exists():
+        shutil.rmtree(asset_dir, ignore_errors=True)
+    asset_dir.mkdir(parents=True, exist_ok=True)
+
+    concat_lines: list[str] = []
+    current_second = 0
+    for index, segment in enumerate(segments, start=1):
+        heading = str(segment.get("title") or (title if index == 1 else f"Section {index}"))
+        narration = str(segment.get("text") or "").strip()
+        bullets = [str(item).strip() for item in (segment.get("bullets") or []) if str(item).strip()]
+        example = str(segment.get("example") or "").strip()
+        citations = [str(item).strip() for item in (segment.get("citations") or []) if str(item).strip()]
+        if not narration:
+            continue
+
+        image_path = asset_dir / f"slide-{index:02d}.png"
+        audio_path = asset_dir / f"audio-{index:02d}.mp3"
+        chunk_path = asset_dir / f"chunk-{index:02d}.mp4"
+        _synthesize_speech(narration, audio_path)
+        duration = max(4, round(_probe_duration(audio_path)))
+        if index == 1:
+            _render_lecture_intro_frame(
+                image_path=image_path,
+                training_title=title,
+                summary=narration,
+                bullets=bullets,
+            )
+        else:
+            _render_lecture_frame(
+                image_path=image_path,
+                training_title=title,
+                heading=heading,
+                bullets=bullets,
+                example=example,
+                source_urls=citations,
+            )
+        _render_video_chunk(image_path=image_path, audio_path=audio_path, output_path=chunk_path, animated=False)
+        concat_lines.append(f"file '{chunk_path.name}'")
+        current_second += duration
+
+    if not concat_lines:
+        raise RuntimeError("No transcript segments were available to rebuild the video.")
+
+    concat_file = asset_dir / "concat.txt"
+    concat_file.write_text("\n".join(concat_lines), encoding="utf-8")
+    lesson_path = asset_dir / "lesson.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_file),
+            "-c",
+            "copy",
+            str(lesson_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    first_slide = asset_dir / "slide-01.png"
+    if first_slide.exists():
+        shutil.copyfile(first_slide, asset_dir / "thumbnail.png")
+    else:
+        _extract_video_thumbnail(asset_dir / "lesson.mp4", asset_dir / "thumbnail.png")
+    return current_second
+
+
 def _render_lecture_intro_frame(
     *,
     image_path: Path,
