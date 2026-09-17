@@ -667,7 +667,7 @@ function MemberRow({
           <SelectContent>
             {statusOptions.map((option) => (
               <SelectItem key={option} value={option}>
-                {option}
+                {formatStatusLabel(option)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -729,4 +729,8 @@ function formatTimeZoneLabel(zone: string) {
 
 function formatRoleLabel(role: string) {
   return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+}
+
+function formatStatusLabel(status: string) {
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 }
