@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models import Notification, OrganizationMember, User
-from app.services.email import send_assignment_email, send_certificate_email, send_completion_email
+from app.services.email import (
+    send_assignment_email,
+    send_certificate_email,
+    send_completion_email,
+    send_training_failed_email,
+    send_training_ready_email,
+)
 
 settings = get_settings()
 
@@ -219,6 +225,13 @@ def notify_training_build_completed(
     ).scalars().all()
 
     for admin in admins:
+        action_url = f"{settings.web_app_url.rstrip('/')}/training/{training_id}"
+        delivery_error = send_training_ready_email(
+            email=admin.email,
+            admin_name=admin.name,
+            training_title=training_title,
+            action_url=action_url,
+        )
         create_notification(
             db,
             organization_id=organization_id,
@@ -228,6 +241,12 @@ def notify_training_build_completed(
             body=f"{training_title} is ready to review and publish.",
             link_url=f"/training/{training_id}",
             metadata_json={
+                "training_id": str(training_id),
+                "training_title": training_title,
+                "delivery_error": delivery_error,
+            }
+            if delivery_error
+            else {
                 "training_id": str(training_id),
                 "training_title": training_title,
             },
@@ -255,6 +274,14 @@ def notify_training_build_failed(
 
     short_error = error_message[:220].strip()
     for admin in admins:
+        action_url = f"{settings.web_app_url.rstrip('/')}/training/{training_id}"
+        delivery_error = send_training_failed_email(
+            email=admin.email,
+            admin_name=admin.name,
+            training_title=training_title,
+            error_message=short_error,
+            action_url=action_url,
+        )
         create_notification(
             db,
             organization_id=organization_id,
@@ -264,6 +291,13 @@ def notify_training_build_failed(
             body=f"{training_title} could not be completed. Review the error and try again.",
             link_url=f"/training/{training_id}",
             metadata_json={
+                "training_id": str(training_id),
+                "training_title": training_title,
+                "error": short_error,
+                "delivery_error": delivery_error,
+            }
+            if delivery_error
+            else {
                 "training_id": str(training_id),
                 "training_title": training_title,
                 "error": short_error,

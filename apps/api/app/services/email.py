@@ -213,6 +213,75 @@ def send_certificate_email(
     )
 
 
+def send_training_ready_email(
+    *,
+    email: str,
+    admin_name: str | None,
+    training_title: str,
+    action_url: str,
+) -> str | None:
+    salutation = admin_name or email
+    html = f"""
+    <div style="font-family: Inter, Arial, sans-serif; background:#fff8f2; color:#24201c; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border:1px solid rgba(36,32,28,0.12); border-radius:24px; padding:32px;">
+        <p style="margin:0 0 12px; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#756a5d;">Training ready</p>
+        <h1 style="margin:0 0 12px; font-size:30px; line-height:1.08;">Your training is ready to review</h1>
+        <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#756a5d;">{salutation}, the generated training package is complete.</p>
+        <div style="border:1px solid rgba(243,136,32,0.18); border-radius:18px; background:#fff5ea; padding:18px 20px;">
+          <p style="margin:0; font-size:14px;"><strong>Training:</strong> {training_title}</p>
+        </div>
+        <div style="margin-top:24px;">
+          <a href="{action_url}" style="display:inline-block; background:#f38820; color:#ffffff; text-decoration:none; border-radius:999px; padding:12px 20px; font-size:14px; font-weight:600;">Review training</a>
+        </div>
+      </div>
+    </div>
+    """.strip()
+    text = f"Your generated training is ready to review. Training: {training_title}. Review training: {action_url}"
+    return _send_email(
+        to=[email],
+        subject=f"Training ready: {training_title}",
+        html=html,
+        text=text,
+        fail_silently=True,
+    )
+
+
+def send_training_failed_email(
+    *,
+    email: str,
+    admin_name: str | None,
+    training_title: str,
+    error_message: str,
+    action_url: str,
+) -> str | None:
+    salutation = admin_name or email
+    short_error = error_message[:500]
+    html = f"""
+    <div style="font-family: Inter, Arial, sans-serif; background:#fff8f2; color:#24201c; padding:32px;">
+      <div style="max-width:560px; margin:0 auto; background:#ffffff; border:1px solid rgba(36,32,28,0.12); border-radius:24px; padding:32px;">
+        <p style="margin:0 0 12px; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#756a5d;">Training build failed</p>
+        <h1 style="margin:0 0 12px; font-size:30px; line-height:1.08;">Training could not be completed</h1>
+        <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#756a5d;">{salutation}, the training generation workflow failed.</p>
+        <div style="border:1px solid rgba(243,136,32,0.18); border-radius:18px; background:#fff5ea; padding:18px 20px;">
+          <p style="margin:0 0 8px; font-size:14px;"><strong>Training:</strong> {training_title}</p>
+          <p style="margin:0; font-size:14px;"><strong>Error:</strong> {short_error}</p>
+        </div>
+        <div style="margin-top:24px;">
+          <a href="{action_url}" style="display:inline-block; background:#f38820; color:#ffffff; text-decoration:none; border-radius:999px; padding:12px 20px; font-size:14px; font-weight:600;">Open workspace</a>
+        </div>
+      </div>
+    </div>
+    """.strip()
+    text = f"Training build failed. Training: {training_title}. Error: {short_error}. Open workspace: {action_url}"
+    return _send_email(
+        to=[email],
+        subject=f"Training build failed: {training_title}",
+        html=html,
+        text=text,
+        fail_silently=True,
+    )
+
+
 def send_invitation_email(
     *,
     email: str,
