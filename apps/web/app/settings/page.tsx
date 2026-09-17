@@ -4,11 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileText, Globe2, KeyRound, Sparkles, Upload, UserPlus, Users2 } from "lucide-react";
+import { FileText, Globe2, KeyRound, Sparkles, Trash2, Upload, UserPlus, Users2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { usePersona } from "@/components/persona-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
@@ -438,14 +439,19 @@ export default function SettingsPage() {
                     <CardDescription>Only the active workspace accounts that matter.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="hidden rounded-[1rem] border border-border bg-[#f8f9fc] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b8ca5] md:grid md:grid-cols-[minmax(0,1.55fr)_140px_140px_110px]">
+                    <div className="hidden rounded-[1rem] border border-border bg-[#f8f9fc] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7b8ca5] md:grid md:grid-cols-[minmax(0,1.55fr)_140px_140px_180px]">
                       <span>Member</span>
                       <span>Role</span>
                       <span>Status</span>
-                      <span>Action</span>
+                      <span>Actions</span>
                     </div>
                     {members.map((member) => (
-                      <MemberRow key={member.id} member={member} onSaved={() => directory.refetch()} />
+                      <MemberRow
+                        key={member.id}
+                        currentUserId={actor?.id}
+                        member={member}
+                        onSaved={() => directory.refetch()}
+                      />
                     ))}
                   </CardContent>
                 </Card>
@@ -553,7 +559,7 @@ export default function SettingsPage() {
                     <SelectContent>
                       {inviteRoleOptions.map((option) => (
                         <SelectItem key={option} value={option}>
-                          {option}
+                          {formatRoleLabel(option)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -594,10 +600,20 @@ export default function SettingsPage() {
   );
 }
 
-function MemberRow({ member, onSaved }: { member: DirectoryUser; onSaved: () => void }) {
+function MemberRow({
+  member,
+  currentUserId,
+  onSaved,
+}: {
+  member: DirectoryUser;
+  currentUserId?: string;
+  onSaved: () => void;
+}) {
   const [role, setRole] = useState<DirectoryUser["role"]>(member.role);
   const [status, setStatus] = useState<DirectoryUser["status"]>(member.status);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const dirty = role !== member.role || status !== member.status;
+  const isCurrentUser = currentUserId === member.id;
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -612,52 +628,89 @@ function MemberRow({ member, onSaved }: { member: DirectoryUser; onSaved: () => 
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<{ message: string }>(`/auth/directory/${member.id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      setDeleteOpen(false);
+      onSaved();
+    },
+  });
+
   return (
-    <div className="grid gap-3 rounded-[1.1rem] border border-border bg-white px-4 py-4 md:grid-cols-[minmax(0,1.55fr)_140px_140px_110px] md:items-center">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-foreground">{member.name ?? member.email}</p>
-        <p className="mt-1 truncate text-sm text-muted-foreground">{member.email}</p>
+    <>
+      <div className="grid gap-3 rounded-[1.1rem] border border-border bg-white px-4 py-4 md:grid-cols-[minmax(0,1.55fr)_140px_140px_180px] md:items-center">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">{member.name ?? member.email}</p>
+          <p className="mt-1 truncate text-sm text-muted-foreground">{member.email}</p>
+        </div>
+
+        <Select value={role} onValueChange={(value: DirectoryUser["role"]) => setRole(value)}>
+          <SelectTrigger className="h-10 rounded-2xl bg-white">
+            <SelectValue placeholder="Role" />
+          </SelectTrigger>
+          <SelectContent>
+            {roleOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {formatRoleLabel(option)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={status} onValueChange={(value: DirectoryUser["status"]) => setStatus(value)}>
+          <SelectTrigger className="h-10 rounded-2xl bg-white">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant={dirty ? "default" : "outline"}
+            className="h-10 px-4"
+            disabled={mutation.isPending || !dirty || deleteMutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending ? <Spinner className="size-4" /> : null}
+            {mutation.isPending ? "Saving..." : "Save"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 px-3 text-destructive hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+            disabled={isCurrentUser || mutation.isPending || deleteMutation.isPending}
+            title={isCurrentUser ? "You cannot remove your own account." : "Remove member"}
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="size-4" />
+            <span className="sr-only">Remove member</span>
+          </Button>
+        </div>
+
+        {mutation.error ? <p className="text-sm text-destructive md:col-span-4">{mutation.error.message}</p> : null}
+        {deleteMutation.error ? <p className="text-sm text-destructive md:col-span-4">{deleteMutation.error.message}</p> : null}
       </div>
 
-      <Select value={role} onValueChange={(value: DirectoryUser["role"]) => setRole(value)}>
-        <SelectTrigger className="h-10 rounded-2xl bg-white">
-          <SelectValue placeholder="Role" />
-        </SelectTrigger>
-        <SelectContent>
-          {roleOptions.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={status} onValueChange={(value: DirectoryUser["status"]) => setStatus(value)}>
-        <SelectTrigger className="h-10 rounded-2xl bg-white">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          {statusOptions.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Button
-        type="button"
-        variant={dirty ? "default" : "outline"}
-        className="h-10 px-4"
-        disabled={mutation.isPending || !dirty}
-        onClick={() => mutation.mutate()}
-      >
-        {mutation.isPending ? <Spinner className="size-4" /> : null}
-        {mutation.isPending ? "Saving..." : "Save"}
-      </Button>
-
-      {mutation.error ? <p className="text-sm text-destructive md:col-span-4">{mutation.error.message}</p> : null}
-    </div>
+      <ConfirmationDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Remove member?"
+        description={`Remove ${member.name ?? member.email} from this workspace. They will lose access immediately, but existing completion history remains available for records.`}
+        confirmLabel="Remove member"
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+      />
+    </>
   );
 }
 
@@ -672,4 +725,8 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function formatTimeZoneLabel(zone: string) {
   return zone.replaceAll("_", " / ").replaceAll("/", " / ");
+}
+
+function formatRoleLabel(role: string) {
+  return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
 }

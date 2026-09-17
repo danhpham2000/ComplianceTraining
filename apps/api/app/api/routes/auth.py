@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 
 from app.api.deps import CurrentActor, DBSession
 from app.core.config import get_settings
@@ -439,3 +439,39 @@ def update_directory_user(user_id, payload: UpdateDirectoryUserRequest, actor: C
         role=membership.role,
         status=membership.status,
     )
+
+
+@router.delete("/directory/{user_id}", response_model=APIMessage)
+def remove_directory_user(user_id, actor: CurrentActor, db: DBSession):
+    if actor.role not in {"OWNER", "ADMIN"}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    if str(user_id) == str(actor.user.id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot remove your own account.")
+
+    row = db.execute(
+        select(User, OrganizationMember)
+        .join(OrganizationMember, OrganizationMember.user_id == User.id)
+        .where(OrganizationMember.organization_id == actor.organization_id, User.id == user_id)
+    ).first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    user, membership = row
+    if membership.role in {"OWNER", "ADMIN"} and membership.status == "ACTIVE":
+        admin_count = db.execute(
+            select(func.count())
+            .select_from(OrganizationMember)
+            .where(OrganizationMember.organization_id == actor.organization_id)
+            .where(OrganizationMember.role.in_(["OWNER", "ADMIN"]))
+            .where(OrganizationMember.status == "ACTIVE")
+        ).scalar_one()
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Add another admin before removing the last admin account.",
+            )
+
+    db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    db.delete(membership)
+    db.commit()
+    return APIMessage(message="Member removed.")
