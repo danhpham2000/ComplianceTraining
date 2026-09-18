@@ -131,7 +131,7 @@ export default function SettingsPage() {
         method: "POST",
         body: {
           name: inviteName.trim() || undefined,
-          email: inviteEmail,
+          email: inviteEmail.trim().toLowerCase(),
           role: inviteRole,
         },
       }),
@@ -519,7 +519,7 @@ export default function SettingsPage() {
                 <div>
                   <CardTitle className="text-[1.15rem]">Invite member</CardTitle>
                   <CardDescription className="mt-1 text-sm text-[#7b8ca5]">
-                    Send workspace access to a new admin, manager, or employee.
+                    Send workspace access to any teammate with a @nextphase.ai email.
                   </CardDescription>
                 </div>
                 <Button
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                     type="email"
                     value={inviteEmail}
                     onChange={(event) => setInviteEmail(event.target.value)}
-                    placeholder="name@company.com"
+                    placeholder="name@nextphase.ai"
                   />
                 </Field>
                 <Field label="Role">

@@ -7,7 +7,7 @@ from sqlalchemy import delete, func, select
 
 from app.api.deps import CurrentActor, DBSession
 from app.core.config import get_settings
-from app.models import AuthSession, Organization, OrganizationMember, User
+from app.models import AuthSession, Notification, Organization, OrganizationMember, User
 from app.schemas.auth import (
     ChangePasswordRequest,
     InviteMemberRequest,
@@ -56,6 +56,10 @@ def build_actor_summary(actor: Actor) -> ActorSummary:
             slug=actor.membership.organization.slug,
         ),
     )
+
+
+def format_role_label(role: str) -> str:
+    return role[:1].upper() + role[1:].lower()
 
 
 def create_session(db: DBSession, user: User) -> str:
@@ -332,7 +336,7 @@ def invite_member(payload: InviteMemberRequest, actor: CurrentActor, db: DBSessi
     target_path = "/login" if existing_account else "/register"
     action_url = f"{settings.web_app_url.rstrip('/')}{target_path}?{query}"
 
-    send_invitation_email(
+    delivery_error = send_invitation_email(
         email=user.email,
         recipient_name=user.name,
         inviter_name=actor.user.name,
@@ -341,6 +345,29 @@ def invite_member(payload: InviteMemberRequest, actor: CurrentActor, db: DBSessi
         existing_account=existing_account,
         fail_silently=False,
     )
+    db.add(
+        Notification(
+            organization_id=actor.organization_id,
+            user_id=user.id,
+            type="WORKSPACE_INVITATION",
+            title="Workspace invitation sent",
+            body=f"You were invited to NextPhase as {format_role_label(membership.role)}.",
+            link_url=f"{target_path}?{query}",
+            metadata_json={
+                "email": user.email,
+                "role": membership.role,
+                "invited_by": actor.user.email,
+                "delivery_error": delivery_error,
+            }
+            if delivery_error
+            else {
+                "email": user.email,
+                "role": membership.role,
+                "invited_by": actor.user.email,
+            },
+        )
+    )
+    db.commit()
 
     return DirectoryUserOut(
         id=user.id,
