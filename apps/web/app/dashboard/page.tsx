@@ -98,7 +98,7 @@ export default function DashboardPage() {
               </Button>
             </div>
 
-            <div className="hidden rounded-[0.95rem] border border-border bg-[#f8f9fc] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7b8ca5] dark:bg-[#171f2b] dark:text-[#8fa1b8] md:grid md:grid-cols-[minmax(0,1.45fr)_120px_120px_40px]">
+            <div className="hidden rounded-[0.95rem] border border-border bg-[#f8f9fc] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7b8ca5] md:grid md:grid-cols-[minmax(0,1.45fr)_120px_120px_40px]">
               <span>Module</span>
               <span>Status</span>
               <span>Questions</span>
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 <Link
                   key={training.id}
                   href={`/training/${training.id}`}
-                  className="grid gap-2.5 rounded-[1rem] border border-border bg-white px-4 py-3 transition hover:border-primary/18 hover:bg-[#fffdf9] dark:bg-[#141a24] dark:hover:bg-[#1a2230] md:grid-cols-[minmax(0,1.45fr)_120px_120px_40px] md:items-center"
+                  className="grid gap-2.5 rounded-[1rem] border border-border bg-white px-4 py-3 transition hover:border-primary/18 hover:bg-[#fffdf9] md:grid-cols-[minmax(0,1.45fr)_120px_120px_40px] md:items-center"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{training.title}</p>
@@ -121,8 +121,8 @@ export default function DashboardPage() {
                   <CellPill tone={training.status === "PUBLISHED" ? "accent" : "neutral"}>
                     {formatTrainingStatus(training.status)}
                   </CellPill>
-                  <span className="text-[13px] text-[#66768f] dark:text-[#8fa1b8]">{training.question_count} items</span>
-                  <span className="text-right text-base text-[#a1adbc] dark:text-[#73839a]">›</span>
+                  <span className="text-[13px] text-[#66768f]">{training.question_count} items</span>
+                  <span className="text-right text-base text-[#a1adbc]">›</span>
                 </Link>
               ))
             ) : (
@@ -130,7 +130,7 @@ export default function DashboardPage() {
             )}
 
             {trainingItems.length > pageSize ? (
-              <div className="flex flex-col gap-3 rounded-[1rem] border border-border bg-[#fcfcfe] px-4 py-3 dark:bg-[#141a24] md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-[1rem] border border-border bg-[#fcfcfe] px-4 py-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-[13px] text-muted-foreground">
                   Showing {Math.min((currentPage - 1) * pageSize + 1, trainingItems.length)}-{Math.min(currentPage * pageSize, trainingItems.length)} of{" "}
                   {trainingItems.length} training modules
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <CellPill tone={item.status === "COMPLETED" ? "accent" : "neutral"}>{item.status}</CellPill>
-                  <span className="text-[13px] text-[#66768f] dark:text-[#8fa1b8]">
+                  <span className="text-[13px] text-[#66768f]">
                     {item.final_score != null ? percent(item.final_score) : "Pending"}
                   </span>
                   {item.certificate ? (
@@ -253,9 +253,9 @@ export default function DashboardPage() {
           <CardContent className="space-y-3">
             {employeeItems.length ? (
               employeeItems.map((employee) => (
-                <div key={employee.id} className="rounded-[1rem] border border-border bg-[#fcfcfe] px-4 py-3 dark:bg-[#141a24]">
+                <div key={employee.id} className="rounded-[1rem] border border-border bg-[#fcfcfe] px-4 py-3">
                   <div className="flex items-start gap-3">
-                    <div className="inline-flex size-8 items-center justify-center rounded-xl bg-[#eef2f7] text-[#708198] dark:bg-[#1b2430] dark:text-[#8fa1b8]">
+                    <div className="inline-flex size-8 items-center justify-center rounded-xl bg-[#eef2f7] text-[#708198]">
                       <Users className="size-3.5" />
                     </div>
                     <div className="min-w-0">
@@ -300,8 +300,8 @@ function CellPill({
     <span
       className={
         tone === "accent"
-          ? "inline-flex w-fit items-center rounded-full bg-[#fff0df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9f5818] dark:bg-[#2a1c10] dark:text-[#ffb25d]"
-          : "inline-flex w-fit items-center rounded-full bg-[#eef2f7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#708198] dark:bg-[#1b2430] dark:text-[#8fa1b8]"
+          ? "inline-flex w-fit items-center rounded-full bg-[#fff0df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9f5818]"
+          : "inline-flex w-fit items-center rounded-full bg-[#eef2f7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#708198]"
       }
     >
       {children}

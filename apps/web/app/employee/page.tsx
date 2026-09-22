@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { apiRequest, downloadApiFile } from "@/lib/api";
+import { isCompleted, isDueSoon, sortAssignments } from "@/lib/assignments";
 import { percent, shortDate } from "@/lib/format";
 import { Assignment } from "@/lib/types";
 
@@ -83,7 +84,7 @@ export default function EmployeePage() {
                 <h2 className="mt-3 text-[1.65rem] font-semibold tracking-[-0.05em] text-foreground md:text-[1.95rem]">
                   {nextAssignment?.training_title ?? "Your learning workspace"}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-[#6f819c] dark:text-[#97a8be]">
+                <p className="mt-2 text-sm leading-6 text-[#6f819c]">
                   Keep the next required training visible, then open the full list when you want to continue.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
@@ -263,41 +264,11 @@ function StatusCell({ status }: { status: string }) {
     <span
       className={
         accent
-          ? "inline-flex w-fit items-center rounded-full bg-[#fff0df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9f5818] dark:bg-[#2a1c10] dark:text-[#ffb25d]"
-          : "inline-flex w-fit items-center rounded-full bg-[#eef2f7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#708198] dark:bg-[#1b2430] dark:text-[#8fa1b8]"
+          ? "inline-flex w-fit items-center rounded-full bg-[#fff0df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9f5818]"
+          : "inline-flex w-fit items-center rounded-full bg-[#eef2f7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#708198]"
       }
     >
       {status}
     </span>
   );
-}
-
-function isCompleted(status?: string | null) {
-  return status === "COMPLETED";
-}
-
-function isDueSoon(dueAt?: string | null) {
-  if (!dueAt) {
-    return false;
-  }
-  const dueDate = new Date(dueAt);
-  const now = new Date();
-  const delta = dueDate.getTime() - now.getTime();
-  return delta >= 0 && delta <= 1000 * 60 * 60 * 24 * 7;
-}
-
-function assignmentSortValue(assignment: Assignment) {
-  if (!assignment.due_at) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-  return new Date(assignment.due_at).getTime();
-}
-
-function sortAssignments(assignments: Assignment[]) {
-  return [...assignments].sort((left, right) => {
-    if (isCompleted(left.status) !== isCompleted(right.status)) {
-      return isCompleted(left.status) ? 1 : -1;
-    }
-    return assignmentSortValue(left) - assignmentSortValue(right);
-  });
 }

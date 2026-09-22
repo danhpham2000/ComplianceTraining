@@ -139,7 +139,7 @@ def generate_assessment(
         text = str(segment.get("text") or "").strip()
         if not text:
             continue
-        title = str(segment.get("title") or "").strip()
+        segment_title = str(segment.get("title") or "").strip()
         example = str(segment.get("example") or "").strip()
         bullets = [
             str(item).strip()
@@ -149,7 +149,7 @@ def generate_assessment(
         start = int(float(segment.get("start") or 0))
         duration = int(float(segment.get("duration") or 0))
         end = max(start, start + duration)
-        context_lines = [f"[{start}s - {end}s] {title}".strip(), text]
+        context_lines = [f"[{start}s - {end}s] {segment_title}".strip(), text]
         if example:
             context_lines.append(f"Scenario example: {example}")
         if bullets:

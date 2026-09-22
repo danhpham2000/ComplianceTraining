@@ -257,7 +257,7 @@ export default function TrainingBuilderPage() {
                 <Link
                   key={training.id}
                   href={`/training/${training.id}`}
-                  className="block rounded-[1.15rem] border border-border bg-[#fcfcfe] px-4 py-4 transition hover:border-primary/20 hover:bg-[#fffaf4] dark:bg-[#141a24] dark:hover:bg-[#1a2230]"
+                  className="block rounded-[1.15rem] border border-border bg-[#fcfcfe] px-4 py-4 transition hover:border-primary/20 hover:bg-[#fffaf4]"
                 >
                   <p className="text-sm font-semibold text-foreground">{training.title}</p>
                   <p className="mt-1 text-sm text-muted-foreground">

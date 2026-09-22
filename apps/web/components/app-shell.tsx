@@ -132,8 +132,8 @@ function UtilityButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative inline-flex size-11 items-center justify-center rounded-2xl border border-border bg-white text-muted-foreground shadow-sm transition-colors hover:bg-secondary/60 hover:text-foreground dark:bg-[#171f2b] dark:text-[#8fa1b8] dark:hover:bg-[#1f2937] dark:hover:text-[#edf2f8]",
-        active && "border-primary/20 bg-[#fff5ea] text-primary dark:bg-[#2a1c10] dark:text-[#ffb25d]",
+        "relative inline-flex size-11 items-center justify-center rounded-2xl border border-border bg-white text-muted-foreground shadow-sm transition-colors hover:bg-secondary/60 hover:text-foreground",
+        active && "border-primary/20 bg-[#fff5ea] text-primary",
       )}
     >
       {children}
@@ -236,7 +236,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (pathname === "/") {
       return (
         <div className="min-h-screen px-4 py-5 md:px-6">
-          <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-7xl items-center justify-center rounded-[2rem] border border-border/80 bg-white/92 p-4 shadow-[0_30px_90px_rgba(36,32,28,0.06)] dark:bg-[#141a24]/92 dark:shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-6">
+          <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-7xl items-center justify-center rounded-[2rem] border border-border/80 bg-white/92 p-4 shadow-[0_30px_90px_rgba(36,32,28,0.06)] md:p-6">
             <main className="flex w-full flex-1 items-center justify-center">{children}</main>
           </div>
         </div>
@@ -245,10 +245,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     return (
       <div className="min-h-screen px-4 py-5 md:px-6">
-        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-7xl flex-col rounded-[2rem] border border-border/80 bg-white/92 p-4 shadow-[0_30px_90px_rgba(36,32,28,0.06)] dark:bg-[#141a24]/92 dark:shadow-[0_30px_90px_rgba(0,0,0,0.28)] md:p-6">
-          <header className="flex items-center rounded-[1.7rem] border border-border/70 bg-white px-5 py-4 dark:bg-[#171d28]">
+        <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-7xl flex-col rounded-[2rem] border border-border/80 bg-white/92 p-4 shadow-[0_30px_90px_rgba(36,32,28,0.06)] md:p-6">
+          <header className="flex items-center rounded-[1.7rem] border border-border/70 bg-white px-5 py-4">
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex flex-col items-center rounded-[1.2rem] bg-white px-3 py-2 dark:bg-[#111722]">
+              <div className="flex flex-col items-center rounded-[1.2rem] bg-white px-3 py-2">
                 <Image
                   src="/nextphase-logo.png"
                   alt="NextPhase.ai"
@@ -271,7 +271,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (!ready || !actor) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fbfbfd] dark:bg-[#0f141c]">
+      <div className="flex min-h-screen items-center justify-center bg-[#fbfbfd]">
         <div className="space-y-3 text-center">
           <div className="mx-auto inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <ShieldCheck className="size-5" />
@@ -290,9 +290,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const userInitials = initials(displayName || actor.email || "U");
 
   return (
-    <div className="min-h-screen bg-[#fbfbfd] text-foreground dark:bg-[#0f141c]">
+    <div className="min-h-screen bg-[#fbfbfd] text-foreground">
       <div className="flex min-h-screen flex-col md:grid md:grid-cols-[224px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-white dark:bg-[#121823] md:border-b-0 md:border-r">
+        <aside className="border-b border-border bg-white md:border-b-0 md:border-r">
           <div className="border-b border-border px-4 py-4">
             <Link href={homeRoute} className="inline-flex flex-col items-center">
               <Image
@@ -301,7 +301,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 width={214}
                 height={48}
                 priority
-                className="h-7 w-auto dark:brightness-[1.08]"
+                className="h-7 w-auto"
               />
               <span className="mt-1 text-center text-[10px] font-medium tracking-[0.08em] text-[#8e775f]">
                 Compliance
@@ -324,20 +324,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                     className={cn(
                       "flex items-center gap-3 rounded-[0.95rem] px-3.5 py-2.5 text-[13px] font-medium transition-colors",
                       active
-                        ? "bg-[#fff4e8] text-primary shadow-[inset_0_0_0_1px_rgba(243,136,32,0.08)] dark:bg-[#2a1c10] dark:text-[#ffb25d] dark:shadow-[inset_0_0_0_1px_rgba(255,154,56,0.12)]"
-                        : "text-[#6f819c] hover:bg-[#f7f9fc] hover:text-foreground dark:text-[#8fa1b8] dark:hover:bg-[#171f2b]",
+                        ? "bg-[#fff4e8] text-primary shadow-[inset_0_0_0_1px_rgba(243,136,32,0.08)]"
+                        : "text-[#6f819c] hover:bg-[#f7f9fc] hover:text-foreground",
                     )}
                   >
-                    <Icon className={cn("size-4.5 shrink-0", active ? "text-primary dark:text-[#ffb25d]" : "text-[#7f90a8] dark:text-[#71839b]")} />
+                    <Icon className={cn("size-4.5 shrink-0", active ? "text-primary" : "text-[#7f90a8]")} />
                     <span>{link.label}</span>
-                    {active ? <span className="ml-auto text-primary dark:text-[#ffb25d]">›</span> : null}
+                    {active ? <span className="ml-auto text-primary">›</span> : null}
                   </Link>
                 );
               })}
             </nav>
 
             <div className="mt-auto border-t border-border px-2 pt-4">
-              <div className="flex items-center gap-3 rounded-[1rem] bg-[#fbfbfd] px-3 py-2.5 dark:bg-[#171f2b]">
+              <div className="flex items-center gap-3 rounded-[1rem] bg-[#fbfbfd] px-3 py-2.5">
                 <div className="inline-flex size-10 items-center justify-center rounded-full bg-[#3d3a38] text-xs font-semibold text-white">
                   {userInitials}
                 </div>
@@ -351,7 +351,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </aside>
 
         <div className="flex min-w-0 flex-col">
-          <header className="border-b border-border bg-white dark:bg-[#121823]">
+          <header className="border-b border-border bg-white">
             <div className="flex min-h-16 items-center justify-between gap-4 px-5 md:px-6">
               <div className="min-w-0">
                 <h1 className="truncate text-[1.35rem] font-semibold tracking-[-0.04em] text-foreground md:text-[1.45rem]">
@@ -371,7 +371,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     </UtilityButton>
 
                     {notificationsOpen ? (
-                      <div className="absolute right-0 top-14 z-30 w-[360px] overflow-hidden rounded-[1.6rem] border border-border bg-white shadow-[0_24px_90px_rgba(31,24,16,0.14)] dark:bg-[#171d28] dark:shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
+                      <div className="absolute right-0 top-14 z-30 w-[360px] overflow-hidden rounded-[1.6rem] border border-border bg-white shadow-[0_24px_90px_rgba(31,24,16,0.14)]">
                         <div className="flex items-center justify-between border-b border-border px-5 py-4">
                           <div>
                             <p className="text-sm font-semibold text-foreground">Notifications</p>
@@ -407,8 +407,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                                   className={cn(
                                     "block w-full rounded-[1.2rem] border px-4 py-3 text-left transition-colors",
                                     item.is_read
-                                      ? "border-border bg-white text-[#647791] hover:bg-[#f8fafc] dark:bg-[#141a24] dark:text-[#98a9bf] dark:hover:bg-[#1a2230]"
-                                      : "border-primary/15 bg-[#fff8f1] text-foreground hover:bg-[#fff2e3] dark:bg-[#2a1c10] dark:text-[#edf2f8] dark:hover:bg-[#342213]",
+                                      ? "border-border bg-white text-[#647791] hover:bg-[#f8fafc]"
+                                      : "border-primary/15 bg-[#fff8f1] text-foreground hover:bg-[#fff2e3]",
                                   )}
                                 >
                                   <div className="flex items-start justify-between gap-3">
@@ -481,7 +481,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={() => router.push("/settings")}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
-                    "w-fit rounded-2xl border-[#dbe2ec] bg-white px-3.5 text-[13px] text-[#5b6f8c] shadow-none hover:bg-[#f7f9fc] dark:border-[#263243] dark:bg-[#171f2b] dark:text-[#c0cddd] dark:hover:bg-[#1f2937]",
+                    "w-fit rounded-2xl border-[#dbe2ec] bg-white px-3.5 text-[13px] text-[#5b6f8c] shadow-none hover:bg-[#f7f9fc]",
                   )}
                 >
                   <Settings2 className="size-4" />

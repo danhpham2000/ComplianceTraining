@@ -127,7 +127,7 @@ export default function TrainingDetailPage() {
       />
 
       <Card className="rounded-[1.9rem] border-border/80">
-        <CardContent className="flex flex-col gap-5 bg-[linear-gradient(135deg,#ffffff,rgba(255,246,236,0.92))] p-5 dark:bg-[linear-gradient(135deg,#141a24,rgba(42,28,16,0.92))] lg:flex-row lg:items-end lg:justify-between">
+        <CardContent className="flex flex-col gap-5 bg-[linear-gradient(135deg,#ffffff,rgba(255,246,236,0.92))] p-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="primary">Training review</Badge>
@@ -137,7 +137,7 @@ export default function TrainingDetailPage() {
             <h2 className="mt-3 text-[1.8rem] font-semibold tracking-[-0.05em] text-foreground md:text-[2.05rem]">
               {training?.title ?? "Loading training..."}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#6f819c] dark:text-[#97a8be]">
+            <p className="mt-2 text-sm leading-6 text-[#6f819c]">
               Review the video first, then switch to question approval and publish controls.
             </p>
           </div>
@@ -206,7 +206,7 @@ export default function TrainingDetailPage() {
 
         <TabsContent value="source" className="space-y-5">
           <Card className="overflow-hidden rounded-[1.8rem] border-border/80">
-            <CardHeader className="border-b border-border/70 bg-white px-5 py-4 dark:bg-[#171f2b]">
+            <CardHeader className="border-b border-border/70 bg-white px-5 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-[1.05rem]">Source video</CardTitle>
@@ -274,14 +274,14 @@ export default function TrainingDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {training?.research_material?.query ? (
-                  <div className="rounded-[1.15rem] border border-border bg-[#fcfcfe] px-4 py-4 dark:bg-[#141a24]">
+                  <div className="rounded-[1.15rem] border border-border bg-[#fcfcfe] px-4 py-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">Research topic</p>
                     <p className="mt-2 text-sm font-semibold text-foreground">{training.research_material.query}</p>
                   </div>
                 ) : null}
 
                 {training?.research_material?.overview ? (
-                  <div className="rounded-[1.15rem] border border-border bg-[#fcfcfe] px-4 py-4 dark:bg-[#141a24]">
+                  <div className="rounded-[1.15rem] border border-border bg-[#fcfcfe] px-4 py-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">Overview</p>
                     <p className="mt-2 text-sm leading-6 text-foreground">{training.research_material.overview}</p>
                   </div>
@@ -291,7 +291,7 @@ export default function TrainingDetailPage() {
                   {(training?.research_material?.sections ?? []).map((section, index) => (
                     <article
                       key={`${section.title}-${index}`}
-                      className="rounded-[1.25rem] border border-border bg-[#fcfcfe] p-5 dark:bg-[#141a24]"
+                      className="rounded-[1.25rem] border border-border bg-[#fcfcfe] p-5"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="primary">{`Scenario ${index + 1}`}</Badge>
@@ -311,7 +311,7 @@ export default function TrainingDetailPage() {
                           </button>
                           <div
                             className={cn(
-                              "pointer-events-none absolute left-full top-1/2 z-20 ml-3 w-[20rem] -translate-y-1/2 rounded-[1.15rem] border border-border bg-white p-3 shadow-[0_18px_40px_rgba(31,24,16,0.14)] transition-all duration-150 dark:bg-[#171f2b]",
+                              "pointer-events-none absolute left-full top-1/2 z-20 ml-3 w-[20rem] -translate-y-1/2 rounded-[1.15rem] border border-border bg-white p-3 shadow-[0_18px_40px_rgba(31,24,16,0.14)] transition-all duration-150",
                               activeCitationSection === `${section.title}-${index}`
                                 ? "translate-x-0 opacity-100"
                                 : "translate-x-1 opacity-0",
@@ -327,7 +327,7 @@ export default function TrainingDetailPage() {
                                   href={citation}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="pointer-events-auto block rounded-[0.95rem] border border-border bg-[#fcfcfe] px-3 py-2.5 transition-colors hover:border-primary/30 hover:bg-[#fff7ef] dark:bg-[#141a24]"
+                                  className="pointer-events-auto block rounded-[0.95rem] border border-border bg-[#fcfcfe] px-3 py-2.5 transition-colors hover:border-primary/30 hover:bg-[#fff7ef]"
                                 >
                                   <p className="text-xs font-semibold text-foreground">{formatSourceLabel(citation)}</p>
                                   <p className="mt-1 truncate text-xs text-[#6f819c]">{citation}</p>
@@ -345,7 +345,7 @@ export default function TrainingDetailPage() {
                             Scenario decision cues
                           </p>
                           {section.bullets.map((bullet) => (
-                            <div key={bullet} className="rounded-[1rem] border border-border bg-white px-4 py-3 text-sm leading-6 text-foreground dark:bg-[#171f2b]">
+                            <div key={bullet} className="rounded-[1rem] border border-border bg-white px-4 py-3 text-sm leading-6 text-foreground">
                               {bullet}
                             </div>
                           ))}
@@ -371,7 +371,7 @@ export default function TrainingDetailPage() {
                     href={source.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="block rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4 transition-colors hover:bg-white dark:bg-[#141a24] dark:hover:bg-[#171f2b]"
+                    className="block rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4 transition-colors hover:bg-white"
                   >
                     <p className="text-sm font-semibold text-foreground">{source.title}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[#9a7b5c]">{source.domain ?? "Source"}</p>
@@ -393,12 +393,12 @@ export default function TrainingDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-                <div className="rounded-[1.3rem] border border-border bg-[#fcfcfe] p-3 dark:bg-[#141a24]">
+                <div className="rounded-[1.3rem] border border-border bg-[#fcfcfe] p-3">
                   <div className="max-h-[32rem] space-y-2 overflow-y-auto pr-1">
                     {training?.questions?.map((question, index) => (
-                      <div key={question.id} className="rounded-[1.05rem] border border-border bg-white px-3 py-3 dark:bg-[#171f2b]">
+                      <div key={question.id} className="rounded-[1.05rem] border border-border bg-white px-3 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex size-7 items-center justify-center rounded-full bg-[#fff2e4] text-xs font-semibold text-primary dark:bg-[#2a1c10]">
+                          <span className="inline-flex size-7 items-center justify-center rounded-full bg-[#fff2e4] text-xs font-semibold text-primary">
                             {index + 1}
                           </span>
                           <div className="min-w-0">
@@ -413,7 +413,7 @@ export default function TrainingDetailPage() {
 
                 <div className="max-h-[32rem] space-y-4 overflow-y-auto pr-1">
                   {training?.questions?.map((question) => (
-                    <article key={question.id} className="rounded-[1.35rem] border border-border bg-[#fcfcfe] p-5 dark:bg-[#141a24]">
+                    <article key={question.id} className="rounded-[1.35rem] border border-border bg-[#fcfcfe] p-5">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{question.topic ?? "General"}</Badge>
                         <Badge variant="primary">{formatQuestionStatus(question.status)}</Badge>
@@ -428,8 +428,8 @@ export default function TrainingDetailPage() {
                             className={cn(
                               "rounded-[1rem] border px-4 py-3 text-sm leading-6",
                               option.is_correct
-                                ? "border-primary/20 bg-[#fff3e6] text-[#6d4518] dark:bg-[#2a1c10] dark:text-[#ffd5ab]"
-                                : "border-border bg-white text-foreground dark:bg-[#171f2b]",
+                                ? "border-primary/20 bg-[#fff3e6] text-[#6d4518]"
+                                : "border-border bg-white text-foreground",
                             )}
                           >
                             {option.text}
@@ -457,7 +457,7 @@ export default function TrainingDetailPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Delivery mode</label>
                   <Select value={audience} onValueChange={(value: "all" | "specific") => setAudience(value)}>
-                    <SelectTrigger className="h-11 rounded-2xl bg-white dark:bg-[#171f2b]">
+                    <SelectTrigger className="h-11 rounded-2xl bg-white">
                       <SelectValue placeholder="Select delivery mode" />
                     </SelectTrigger>
                     <SelectContent>
@@ -471,7 +471,7 @@ export default function TrainingDetailPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Employee</label>
                     <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                      <SelectTrigger className="h-11 rounded-2xl bg-white dark:bg-[#171f2b]">
+                      <SelectTrigger className="h-11 rounded-2xl bg-white">
                         <SelectValue placeholder="Select employee" />
                       </SelectTrigger>
                       <SelectContent>
@@ -525,7 +525,7 @@ export default function TrainingDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {training?.learning_objectives?.map((objective) => (
-                    <div key={objective.id} className="rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4 dark:bg-[#141a24]">
+                    <div key={objective.id} className="rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4">
                       <div className="flex gap-3">
                         <CheckCircle2 className="mt-0.5 size-4 text-primary" />
                         <p className="text-sm leading-6 text-foreground">{objective.text}</p>
@@ -544,9 +544,9 @@ export default function TrainingDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {employees.map((employee) => (
-                    <div key={employee.id} className="rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4 dark:bg-[#141a24]">
+                    <div key={employee.id} className="rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4">
                       <div className="flex items-start gap-3">
-                        <div className="inline-flex size-9 items-center justify-center rounded-2xl bg-[#fff2e4] text-primary dark:bg-[#2a1c10]">
+                        <div className="inline-flex size-9 items-center justify-center rounded-2xl bg-[#fff2e4] text-primary">
                           <Users className="size-4" />
                         </div>
                         <div className="min-w-0">
@@ -605,7 +605,7 @@ function formatSourceLabel(url: string) {
 
 function TopMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.15rem] border border-white/70 bg-white/80 px-4 py-3.5 shadow-sm backdrop-blur dark:border-[#283243] dark:bg-[#171f2b]/90">
+    <div className="rounded-[1.15rem] border border-white/70 bg-white/80 px-4 py-3.5 shadow-sm backdrop-blur">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">{label}</p>
       <p className="mt-2 text-sm font-semibold text-foreground md:text-[15px]">{value}</p>
     </div>
@@ -614,7 +614,7 @@ function TopMetric({ label, value }: { label: string; value: string }) {
 
 function InfoMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4 dark:bg-[#141a24]">
+    <div className="rounded-[1.1rem] border border-border bg-[#fcfcfe] px-4 py-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">{label}</p>
       <p className="mt-2 text-sm font-semibold text-foreground">{value}</p>
     </div>
@@ -633,8 +633,8 @@ function StatusPill({
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]",
         tone === "accent"
-          ? "bg-[#fff0df] text-[#9f5818] dark:bg-[#2a1c10] dark:text-[#ffb25d]"
-          : "bg-white/80 text-[#6f819c] dark:bg-[#171f2b] dark:text-[#97a8be]",
+          ? "bg-[#fff0df] text-[#9f5818]"
+          : "bg-white/80 text-[#6f819c]",
       )}
     >
       {label}

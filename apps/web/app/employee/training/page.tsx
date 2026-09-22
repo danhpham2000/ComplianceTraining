@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { apiRequest, downloadApiFile } from "@/lib/api";
+import { isCompleted, isInProgress, isPastDue, sortAssignments } from "@/lib/assignments";
 import { percent, shortDate } from "@/lib/format";
 import { Assignment } from "@/lib/types";
 
@@ -244,35 +245,4 @@ function StatusCell({ status }: { status: string }) {
       {status}
     </span>
   );
-}
-
-function isCompleted(status?: string | null) {
-  return status === "COMPLETED";
-}
-
-function isInProgress(assignment: Assignment) {
-  return !isCompleted(assignment.status) && (assignment.status === "IN_PROGRESS" || (assignment.watch_percentage ?? 0) > 0);
-}
-
-function isPastDue(dueAt?: string | null, status?: string | null) {
-  if (!dueAt || isCompleted(status)) {
-    return false;
-  }
-  return new Date(dueAt).getTime() < Date.now();
-}
-
-function assignmentSortValue(assignment: Assignment) {
-  if (!assignment.due_at) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-  return new Date(assignment.due_at).getTime();
-}
-
-function sortAssignments(assignments: Assignment[]) {
-  return [...assignments].sort((left, right) => {
-    if (isCompleted(left.status) !== isCompleted(right.status)) {
-      return isCompleted(left.status) ? 1 : -1;
-    }
-    return assignmentSortValue(left) - assignmentSortValue(right);
-  });
 }
