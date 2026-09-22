@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import threading
 from urllib.parse import urlparse
 
@@ -55,6 +55,7 @@ from app.services.research_training import build_research_training, remove_gener
 
 
 router = APIRouter(tags=["training"])
+STALE_BUILD_AFTER = timedelta(minutes=30)
 
 
 def _load_training_for_build(db, *, training_id, organization_id) -> TrainingCourse | None:
@@ -223,6 +224,23 @@ def normalize_generation_mode(mode: str | None) -> str:
     return normalized
 
 
+def mark_stale_processing_build(course: TrainingCourse) -> bool:
+    if course.status != "PROCESSING":
+        return False
+    created_at = course.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) - created_at < STALE_BUILD_AFTER:
+        return False
+
+    version = course.versions[-1] if course.versions else None
+    course.status = "FAILED"
+    course.description = "Training build timed out. Please create the training again."
+    if version and version.status == "PROCESSING":
+        version.status = "FAILED"
+    return True
+
+
 def serialize_course(course: TrainingCourse) -> CourseSummaryOut:
     version = course.versions[-1] if course.versions else None
     source = version.content_sources[0] if version and version.content_sources else None
@@ -310,6 +328,8 @@ def list_training(db: DBSession, actor: CurrentActor):
         )
         .order_by(TrainingCourse.created_at.desc())
     ).scalars().all()
+    if any(mark_stale_processing_build(course) for course in courses):
+        db.commit()
     return [serialize_course(course) for course in courses]
 
 
@@ -404,6 +424,9 @@ def get_training(training_id, db: DBSession, actor: CurrentActor):
     ).scalar_one_or_none()
     if not course:
         raise HTTPException(status_code=404, detail="Training not found")
+    if mark_stale_processing_build(course):
+        db.commit()
+        db.refresh(course)
     version = course.versions[-1]
     source = version.content_sources[0] if version.content_sources else None
     return TrainingDetailOut(
