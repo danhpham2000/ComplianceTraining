@@ -269,7 +269,7 @@ export default function TrainingDetailPage() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-[1.05rem]">Research material</CardTitle>
                 <CardDescription className="text-sm text-[#7b8ca5]">
-                  Review the crawl result that was turned into the lesson and quiz.
+                  Review the live sources, scenario examples, and citations used for the lesson and quiz.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -294,7 +294,7 @@ export default function TrainingDetailPage() {
                       className="rounded-[1.25rem] border border-border bg-[#fcfcfe] p-5 dark:bg-[#141a24]"
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="primary">{`Section ${index + 1}`}</Badge>
+                        <Badge variant="primary">{`Scenario ${index + 1}`}</Badge>
                         <div
                           className="relative"
                           onMouseEnter={() => setActiveCitationSection(`${section.title}-${index}`)}
@@ -318,7 +318,7 @@ export default function TrainingDetailPage() {
                             )}
                           >
                             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">
-                              Section sources
+                              Scenario sources
                             </p>
                             <div className="mt-3 space-y-2">
                               {section.citations.map((citation) => (
@@ -341,6 +341,9 @@ export default function TrainingDetailPage() {
                       <p className="mt-2 text-sm leading-6 text-[#6f819c]">{section.summary}</p>
                       {section.bullets.length ? (
                         <div className="mt-4 grid gap-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">
+                            Scenario decision cues
+                          </p>
                           {section.bullets.map((bullet) => (
                             <div key={bullet} className="rounded-[1rem] border border-border bg-white px-4 py-3 text-sm leading-6 text-foreground dark:bg-[#171f2b]">
                               {bullet}

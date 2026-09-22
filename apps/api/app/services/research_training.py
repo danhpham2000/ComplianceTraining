@@ -116,6 +116,7 @@ def _search_sources(research_query: str) -> list[dict]:
     queries = [
         f"{research_query} best practices 2026",
         f"{research_query} employee guidance 2026",
+        f"{research_query} workplace scenario examples employee training 2026",
     ]
     collected: list[dict] = []
     seen_urls: set[str] = set()
@@ -360,7 +361,7 @@ def _render_lecture_intro_frame(
     focus_font = _load_font(19, bold=True)
     step_font = _load_font(23, bold=True)
 
-    draw.text((108, 87), "INTRODUCTION", fill=PRIMARY, font=badge_font)
+    draw.text((108, 87), "SCENARIO TRAINING", fill=PRIMARY, font=badge_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
@@ -372,7 +373,7 @@ def _render_lecture_intro_frame(
     )
 
     summary_top = max(304, heading_bottom + 30)
-    draw.text((88, summary_top - 32), "What this lesson covers", fill="#9a7b5c", font=summary_label_font)
+    draw.text((88, summary_top - 32), "Scenario setup", fill="#9a7b5c", font=summary_label_font)
     draw.rounded_rectangle((82, summary_top, 820, summary_top + 150), radius=30, fill="#f7fbff", outline="#e2ebf4", width=2)
     _draw_wrapped_text(
         draw=draw,
@@ -385,8 +386,8 @@ def _render_lecture_intro_frame(
     )
 
     draw.rounded_rectangle((884, 194, 1188, 506), radius=34, fill="#fff8f0", outline="#f0e4d8", width=2)
-    draw.text((922, 228), "The flow", fill="#9a7b5c", font=focus_label_font)
-    for index, step in enumerate(["Recognize risk", "Verify request", "Protect data"]):
+    draw.text((922, 228), "How to decide", fill="#9a7b5c", font=focus_label_font)
+    for index, step in enumerate(["Spot the cue", "Choose action", "Report fast"]):
         y = 278 + index * 70
         draw.ellipse((922, y, 970, y + 48), fill="#ffffff", outline="#f0d6bb", width=2)
         draw.text((939, y + 10), str(index + 1), fill=PRIMARY, font=step_font)
@@ -430,11 +431,11 @@ def _render_lecture_frame(
     badge_font = _load_font(18, bold=True)
     heading_font = _select_heading_font(heading, max_width=810, large=56, medium=50, small=44)
     section_font = _load_font(20, bold=True)
-    bullet_font = _load_font(27, bold=True)
-    example_font = _load_font(23)
+    bullet_font = _load_font(24, bold=True)
+    example_font = _load_font(22)
     small_font = _load_font(16, bold=True)
 
-    draw.text((108, 86), "LESSON SECTION", fill=PRIMARY, font=badge_font)
+    draw.text((108, 86), "SCENARIO", fill=PRIMARY, font=badge_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
@@ -445,41 +446,55 @@ def _render_lecture_frame(
         line_height=60,
     )
 
-    actions_top = max(292, heading_bottom + 30)
-    draw.text((88, actions_top - 32), "Key actions", fill="#9a7b5c", font=section_font)
-    draw.rounded_rectangle((82, actions_top, 826, actions_top + 210), radius=32, fill="#f7fbff", outline="#e2ebf4", width=2)
-    cursor_y = actions_top + 30
-    for bullet in (bullets[:2] or ["Apply the recommended compliance habit."]):
-        bullet_lines = _wrap_text(_format_slide_bullet(bullet, max_chars=78), bullet_font, 626)[:2]
-        draw.ellipse((120, cursor_y + 9, 140, cursor_y + 29), fill=PRIMARY)
+    scene_top = max(284, heading_bottom + 30)
+    callout_text = example.strip() or (bullets[0] if bullets else training_title)
+    draw.text((88, scene_top - 32), "Workplace scenario", fill="#9a7b5c", font=section_font)
+    draw.rounded_rectangle((82, scene_top, 826, scene_top + 168), radius=32, fill="#f7fbff", outline="#e2ebf4", width=2)
+    _draw_wrapped_text(
+        draw=draw,
+        x=120,
+        y=scene_top + 30,
+        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=150), example_font, 650)[:4],
+        font=example_font,
+        fill="#56677f",
+        line_height=30,
+    )
+
+    actions_top = scene_top + 198
+    draw.text((88, actions_top - 26), "Decision cues", fill="#9a7b5c", font=section_font)
+    draw.rounded_rectangle((82, actions_top, 826, actions_top + 96), radius=28, fill="#ffffff", outline=BORDER, width=2)
+    cursor_x = 118
+    for index, bullet in enumerate((bullets[:3] or ["Apply the recommended compliance habit."])[:3]):
+        pill_width = 214
+        draw.rounded_rectangle((cursor_x, actions_top + 22, cursor_x + pill_width, actions_top + 72), radius=22, fill="#fff7ef", outline="#f0e0cf", width=1)
+        draw.text((cursor_x + 18, actions_top + 36), f"0{index + 1}", fill=PRIMARY, font=small_font)
         _draw_wrapped_text(
             draw=draw,
-            x=168,
-            y=cursor_y,
-            lines=bullet_lines,
+            x=cursor_x + 52,
+            y=actions_top + 31,
+            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=32), bullet_font, 144)[:1],
             font=bullet_font,
             fill=INK,
-            line_height=34,
+            line_height=26,
         )
-        cursor_y += len(bullet_lines) * 34 + 22
+        cursor_x += pill_width + 22
 
-    callout_text = example.strip() or (bullets[0] if bullets else training_title)
     draw.rounded_rectangle((878, 218, 1186, 526), radius=34, fill="#fff8f0", outline="#f0e4d8", width=2)
     draw.rounded_rectangle((910, 252, 1070, 296), radius=22, fill="#ffffff")
-    draw.text((936, 265), "EXAMPLE", fill=PRIMARY, font=small_font)
+    draw.text((936, 265), "CHOICE", fill=PRIMARY, font=small_font)
     _draw_wrapped_text(
         draw=draw,
         x=916,
         y=330,
-        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=110), example_font, 232)[:5],
+        lines=_wrap_text(_format_slide_bullet(bullets[0] if bullets else callout_text, max_chars=100), example_font, 232)[:5],
         font=example_font,
         fill=INK,
         line_height=30,
     )
 
     draw.rounded_rectangle((82, 548, 826, 612), radius=24, fill="#fff7ef", outline="#f0e0cf", width=2)
-    draw.text((112, 570), "Remember:", fill=PRIMARY, font=section_font)
-    draw.text((242, 570), _format_slide_bullet(bullets[0] if bullets else heading, max_chars=50), fill=INK, font=section_font)
+    draw.text((112, 570), "Takeaway:", fill=PRIMARY, font=section_font)
+    draw.text((242, 570), _format_slide_bullet(bullets[-1] if bullets else heading, max_chars=50), fill=INK, font=section_font)
     _paste_logo_bottom_right(image, x=966, y=586)
     image.save(image_path)
 

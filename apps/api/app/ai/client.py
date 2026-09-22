@@ -139,14 +139,27 @@ def generate_assessment(
         text = str(segment.get("text") or "").strip()
         if not text:
             continue
+        title = str(segment.get("title") or "").strip()
+        example = str(segment.get("example") or "").strip()
+        bullets = [
+            str(item).strip()
+            for item in (segment.get("bullets") or [])
+            if str(item).strip()
+        ][:3]
         start = int(float(segment.get("start") or 0))
         duration = int(float(segment.get("duration") or 0))
         end = max(start, start + duration)
-        segment_lines.append(f"[{start}s - {end}s] {text}")
+        context_lines = [f"[{start}s - {end}s] {title}".strip(), text]
+        if example:
+            context_lines.append(f"Scenario example: {example}")
+        if bullets:
+            context_lines.append(f"Key behaviors: {'; '.join(bullets)}")
+        segment_lines.append("\n".join(context_lines))
 
     segment_context = "\n".join(segment_lines[:220]) if segment_lines else transcript_text
     prompt = f"""
 You are generating compliance training assessment content from a source transcript.
+The lesson is scenario-based: employees should be tested on what they should do in realistic workplace situations.
 
 Training title: {title}
 Question count: {question_count}
@@ -155,14 +168,16 @@ Admin instructions: {admin_instructions or "None"}
 Requirements:
 - Return exactly {question_count} questions.
 - Only use facts that are explicitly grounded in the transcript excerpts below.
-- Use scenario-based wording when possible.
+- Use scenario-based wording for every question unless the transcript cannot support it.
+- At least half of the questions must describe a concrete workplace situation and ask for the safest or most compliant employee action.
 - For each multiple-choice question, provide exactly 4 options and exactly 1 correct answer.
 - Avoid trivia, generic compliance filler, or unsupported claims.
 - Include concise hints and explanations.
 - Every question must be answerable from one or more transcript excerpts below.
 - For every question, set sourceStartSeconds and sourceEndSeconds to the excerpt timestamps that support the answer.
 - If the transcript does not support a fact clearly, do not use it.
-- Prefer concrete operational behavior, policy actions, examples, and warnings that the speaker actually mentions.
+- Prefer concrete operational behavior, policy actions, scenario examples, warnings, reporting steps, and expected decisions that the speaker actually mentions.
+- Distractor options should be plausible employee mistakes from the scenario, not silly or obviously wrong answers.
 
 Transcript excerpts:
 {segment_context}
@@ -201,6 +216,7 @@ def generate_research_brief(
     script_profile_name: str | None = None,
     script_markdown: str | None = None,
 ) -> AIResearchBrief:
+    current_label = datetime.now(timezone.utc).strftime("%B %d, %Y")
     custom_guide_block = ""
     if script_markdown:
         custom_guide_block = f"""
@@ -215,26 +231,27 @@ Custom guide:
 """
     prompt = f"""
 You are building a compliance training lesson from fresh web research.
-Your narration should sound like a calm, experienced lecturer speaking live to employees.
+Your narration should sound like a calm, experienced trainer walking employees through realistic workplace scenarios.
 
 Training title: {title}
 Research query: {research_query}
 
 Requirements:
 - Use only the source excerpts provided below.
-- Prioritize current guidance that is still relevant as of August 25, 2026.
+- Prioritize current guidance that is still relevant as of {current_label}.
 - Produce 4 to 6 sections.
 - Keep narration practical, concise, and suitable for a 3 to 5 minute training video.
 - Write for the ear, not the page. Use smooth spoken transitions and natural sentence rhythm.
 - The opening summary must do two things:
   1. give the audience a reason to care
-  2. orient them to what they are about to learn
+  2. introduce the realistic scenario lens employees will use during the lesson
 - Each section narration should:
-  - explain one main idea at a time
+  - revolve around one realistic workplace situation
+  - identify the employee context, the risk, the expected behavior, and the consequence of a poor choice
   - use plain language first, then the formal concept only when needed
   - sound natural when spoken aloud
   - add useful context instead of reading bullet points verbatim
-  - include a practical employee-facing example
+  - include a practical employee-facing scenario example
 - Avoid generic presentation filler such as "today we are going to talk about" or "in this presentation".
 - Avoid marketing language, robotic phrasing, and dense academic prose.
 - Every section must cite one or more source URLs from the provided material.
@@ -243,12 +260,14 @@ Requirements:
 - Section headings must be short and slide-friendly, ideally 3 to 7 words.
 - Section bullets are for slides only:
   - return 2 or 3 bullets per section
-  - each bullet must be concise, high-signal, and easy to scan
+  - each bullet must be a decision cue, warning sign, or expected action
   - prefer short phrases over full sentences
 - Every section must include an `example` field:
-  - one short, concrete workplace scenario or illustration
+  - one short, concrete workplace scenario or illustration with an employee, situation, and expected action
   - keep it specific and easy to visualize
   - write it so it can be shown on-screen inside the training video
+- The scenario examples must not include real employee names, real secrets, passwords, customer data, or unverifiable company policy.
+- Use fictional names and generic business contexts.
 - Learning objectives must be concise and concrete.
 - The description should be one compact paragraph for the training library.
 - Return a references list containing the strongest sources actually used.
