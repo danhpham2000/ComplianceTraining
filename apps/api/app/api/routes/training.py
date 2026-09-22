@@ -55,7 +55,7 @@ from app.services.research_training import build_research_training, remove_gener
 
 
 router = APIRouter(tags=["training"])
-STALE_BUILD_AFTER = timedelta(minutes=30)
+STALE_BUILD_AFTER = timedelta(minutes=10)
 
 
 def _load_training_for_build(db, *, training_id, organization_id) -> TrainingCourse | None:
