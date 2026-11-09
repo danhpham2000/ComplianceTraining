@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Award, Download, Users } from "lucide-react";
@@ -8,7 +8,9 @@ import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { MetricCard } from "@/components/metric-card";
 import { usePersona } from "@/components/persona-provider";
+import { TrainingStatusBadge } from "@/components/training-status-badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { apiRequest, downloadApiFile } from "@/lib/api";
@@ -118,9 +120,7 @@ export default function DashboardPage() {
                       {training.content_source?.title ?? "Source attached during review"}
                     </p>
                   </div>
-                  <CellPill tone={training.status === "PUBLISHED" ? "accent" : "neutral"}>
-                    {formatTrainingStatus(training.status)}
-                  </CellPill>
+                  <TrainingStatusBadge status={training.status} />
                   <span className="text-[13px] text-[#66768f]">{training.question_count} items</span>
                   <span className="text-right text-base text-[#a1adbc]">›</span>
                 </Link>
@@ -206,7 +206,7 @@ export default function DashboardPage() {
                           : item.assignment_name}
                     </p>
                   </div>
-                  <CellPill tone={item.status === "COMPLETED" ? "accent" : "neutral"}>{item.status}</CellPill>
+                  <Badge variant={item.status === "COMPLETED" ? "primary" : "outline"}>{item.status}</Badge>
                   <span className="text-[13px] text-[#66768f]">
                     {item.final_score != null ? percent(item.final_score) : "Pending"}
                   </span>
@@ -276,35 +276,5 @@ export default function DashboardPage() {
         </Card>
       </section>
     </motion.div>
-  );
-}
-
-function formatTrainingStatus(status: string) {
-  if (status === "DRAFT") {
-    return "IN REVIEW";
-  }
-  if (status === "PROCESSING") {
-    return "BUILDING";
-  }
-  return status;
-}
-
-function CellPill({
-  children,
-  tone,
-}: {
-  children: ReactNode;
-  tone: "accent" | "neutral";
-}) {
-  return (
-    <span
-      className={
-        tone === "accent"
-          ? "inline-flex w-fit items-center rounded-full bg-[#fff0df] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#9f5818]"
-          : "inline-flex w-fit items-center rounded-full bg-[#eef2f7] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#708198]"
-      }
-    >
-      {children}
-    </span>
   );
 }

@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { usePersona } from "@/components/persona-provider";
+import { formatTrainingStatus } from "@/components/training-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -248,16 +249,6 @@ export default function TrainingBuilderPage() {
       </section>
     </motion.div>
   );
-}
-
-function formatTrainingStatus(status: string) {
-  if (status === "DRAFT") {
-    return "IN REVIEW";
-  }
-  if (status === "PROCESSING") {
-    return "BUILDING";
-  }
-  return status;
 }
 
 function Field({

@@ -9,6 +9,7 @@ import { CheckCircle2, Send, Trash2, Users } from "lucide-react";
 import { CourseVideoPlayer } from "@/components/course-video-player";
 import { EmptyState } from "@/components/empty-state";
 import { usePersona } from "@/components/persona-provider";
+import { formatTrainingStatus, TrainingStatusBadge } from "@/components/training-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -131,7 +132,7 @@ export default function TrainingDetailPage() {
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="primary">Training review</Badge>
-              <StatusPill label={formatTrainingStatus(training?.status)} tone="neutral" />
+              <TrainingStatusBadge status={training?.status} />
               <StatusPill label={`${training?.question_count ?? 0} questions`} tone="accent" />
             </div>
             <h2 className="mt-3 text-[1.8rem] font-semibold tracking-[-0.05em] text-foreground md:text-[2.05rem]">
@@ -573,19 +574,6 @@ function formatDuration(seconds?: number | null) {
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
-}
-
-function formatTrainingStatus(status?: string | null) {
-  if (!status) {
-    return "Loading";
-  }
-  if (status === "DRAFT") {
-    return "IN REVIEW";
-  }
-  if (status === "PROCESSING") {
-    return "BUILDING";
-  }
-  return status;
 }
 
 function formatQuestionStatus(status?: string | null) {
