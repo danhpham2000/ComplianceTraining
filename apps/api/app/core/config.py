@@ -27,19 +27,15 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     web_app_url: str = "http://localhost:3000"
     database_url: str
-    openai_api_key: str | None = None
-    openai_tts_model: str = "gpt-4o-mini-tts"
-    openai_tts_voice: str = "sage"
-    openai_video_model: str = "sora-2"
-    openai_video_poll_interval_ms: int = 2000
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_model: str = "openrouter/free"
+    openrouter_tts_model: str = "google/gemini-3.8-flash-tts"
+    openrouter_tts_voice: str = "Kore"
     firecrawl_api_key: str | None = None
     resend_api_key: str | None = None
     resend_from_email: str = "NextPhase <onboarding@resend.dev>"
     resend_reply_to: str | None = None
-    openai_model: str = "gpt-5.4"
     app_env: str = "development"
     allowed_email_domain: str = "nextphase.ai"
     bootstrap_admin_email: str = "danhp@nextphase.ai"

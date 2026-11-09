@@ -3,6 +3,7 @@ import math
 import re
 import shutil
 import subprocess
+import wave
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -10,7 +11,6 @@ from textwrap import shorten
 from urllib.parse import urlparse
 
 import httpx
-from openai import OpenAI
 from PIL import Image, ImageDraw, ImageFont
 
 from app.ai.client import generate_research_brief, generate_assessment
@@ -232,28 +232,31 @@ def _render_training_video(*, training_id: str, title: str, brief, generation_mo
 
     for index, slide in enumerate(slides, start=1):
         image_path = asset_dir / f"slide-{index:02d}.png"
-        audio_path = asset_dir / f"audio-{index:02d}.mp3"
+        audio_path = asset_dir / f"audio-{index:02d}.wav"
         chunk_path = asset_dir / f"chunk-{index:02d}.mp4"
         _synthesize_speech(slide["narration"], audio_path)
         duration = max(4, round(_probe_duration(audio_path)))
         if generation_mode == "CARTOON":
-            source_clip_path = asset_dir / f"sora-{index:02d}.mp4"
-            _generate_sora_cartoon_clip(
-                output_path=source_clip_path,
-                thumbnail_path=thumbnail_path if not thumbnail_path.exists() else None,
+            frame_dir = asset_dir / f"frames-{index:02d}"
+            _render_cartoon_frames(
+                frame_dir=frame_dir,
+                training_title=title,
                 heading=slide["heading"],
                 narration=slide["narration"],
                 bullets=slide["bullets"],
-                example=slide["example"],
-                training_title=title,
+                source_urls=slide["sourceUrls"],
                 scene_index=index - 1,
                 duration_seconds=duration,
             )
-            _render_video_chunk_from_source(
-                source_video_path=source_clip_path,
+            _render_video_chunk(
+                image_path=None,
                 audio_path=audio_path,
                 output_path=chunk_path,
+                animated=True,
+                frame_pattern=str(frame_dir / "frame-%04d.png"),
             )
+            if not thumbnail_path.exists():
+                shutil.copyfile(frame_dir / "frame-0000.png", thumbnail_path)
         else:
             if index == 1:
                 _render_lecture_intro_frame(
@@ -743,115 +746,34 @@ def _draw_wrapped_text(
 
 def _synthesize_speech(text: str, audio_path: Path) -> None:
     settings = get_settings()
-    if settings.openai_api_key:
-        try:
-            client = OpenAI(api_key=settings.openai_api_key)
-            response = client.audio.speech.create(
-                model=settings.openai_tts_model,
-                voice=settings.openai_tts_voice,
-                input=text,
-                response_format="mp3",
-            )
-            audio_path.write_bytes(response.content)
-            return
-        except Exception as exc:
-            raise RuntimeError(f"OpenAI text-to-speech failed. {exc}") from exc
-
-    subprocess.run(
-        ["say", "-o", str(audio_path), text],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-
-def _generate_sora_cartoon_clip(
-    *,
-    output_path: Path,
-    thumbnail_path: Path | None,
-    training_title: str,
-    heading: str,
-    narration: str,
-    bullets: list[str],
-    example: str,
-    scene_index: int,
-    duration_seconds: int,
-) -> None:
-    settings = get_settings()
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is required for cartoon video generation with Sora.")
-
-    client = OpenAI(api_key=settings.openai_api_key)
-    clip_seconds = _select_sora_duration(duration_seconds)
-    prompt = _build_sora_prompt(
-        training_title=training_title,
-        heading=heading,
-        narration=narration,
-        bullets=bullets,
-        example=example,
-        scene_index=scene_index,
-        clip_seconds=clip_seconds,
-    )
-
-    video = client.videos.create_and_poll(
-        model=settings.openai_video_model,
-        prompt=prompt,
-        seconds=clip_seconds,
-        size="1280x720",
-        poll_interval_ms=settings.openai_video_poll_interval_ms,
-        timeout=1800,
-    )
-    if video.status != "completed":
-        message = getattr(video.error, "message", None) or repr(video.error) or video.status
-        raise RuntimeError(f"Sora video generation failed. {message}")
-
-    client.videos.download_content(video.id).write_to_file(output_path)
-    if thumbnail_path is not None:
-        try:
-            client.videos.download_content(video.id, variant="thumbnail").write_to_file(thumbnail_path)
-        except Exception:
-            _extract_video_thumbnail(output_path, thumbnail_path)
-
-
-def _select_sora_duration(duration_seconds: int) -> str:
-    if duration_seconds <= 6:
-        return "4"
-    if duration_seconds <= 10:
-        return "8"
-    return "12"
-
-
-def _build_sora_prompt(
-    *,
-    training_title: str,
-    heading: str,
-    narration: str,
-    bullets: list[str],
-    example: str,
-    scene_index: int,
-    clip_seconds: str,
-) -> str:
-    scene_style = [
-        "friendly onboarding explainer set in a modern office",
-        "animated employee decision moment with clear cause and effect",
-        "cartoon workplace vignette showing safe behavior in action",
-        "playful motion-graphics training scene with polished business visuals",
-    ][scene_index % 4]
-    action_points = "; ".join(_format_slide_bullet(item, max_chars=120) for item in bullets[:3]) or "Show one practical compliance habit."
-    example_text = _format_slide_bullet(example, max_chars=140) if example.strip() else "Use a realistic workplace example."
-    return "\n".join(
-        [
-            f"Create a {clip_seconds}-second 2D cartoon compliance training video in 1280x720 landscape.",
-            "Visual style: polished animated explainer, smooth motion, expressive characters, soft light backgrounds, orange and cream brand accents, cinematic framing, gentle camera movement.",
-            "Do not create a slide deck. Do not show bullet lists, citations, subtitles, UI panels, browser chrome, watermarks, or long on-screen text.",
-            f"Lesson title: {training_title}.",
-            f"Scene focus: {heading}.",
-            f"Teaching goal: {narration}",
-            f"Key actions to illustrate: {action_points}",
-            f"Example situation: {example_text}",
-            f"Scene direction: {scene_style}. Show employees making decisions, consequences, and the safer action path in a clear, kid-friendly but professional tone.",
-        ]
-    )
+    if not settings.openrouter_api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is required for narrated training videos.")
+    try:
+        response = httpx.post(
+            f"{settings.openrouter_base_url.rstrip('/')}/audio/speech",
+            headers={
+                "Authorization": f"Bearer {settings.openrouter_api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": settings.web_app_url,
+                "X-OpenRouter-Title": "NextPhase Compliance Training",
+            },
+            json={
+                "model": settings.openrouter_tts_model,
+                "input": text,
+                "voice": settings.openrouter_tts_voice,
+                "response_format": "pcm",
+            },
+            timeout=180,
+        )
+        response.raise_for_status()
+        with wave.open(str(audio_path), "wb") as audio_file:
+            audio_file.setnchannels(1)
+            audio_file.setsampwidth(2)
+            audio_file.setframerate(24000)
+            audio_file.writeframes(response.content)
+    except httpx.HTTPError as exc:
+        detail = exc.response.text[:500] if exc.response is not None else str(exc)
+        raise RuntimeError(f"OpenRouter text-to-speech failed. {detail}") from exc
 
 
 def _probe_duration(path: Path) -> float:
@@ -925,53 +847,6 @@ def _render_video_chunk(
         ]
     )
     subprocess.run(command, check=True, capture_output=True, text=True)
-
-
-def _render_video_chunk_from_source(
-    *,
-    source_video_path: Path,
-    audio_path: Path,
-    output_path: Path,
-) -> None:
-    source_duration = _probe_duration(source_video_path)
-    audio_duration = _probe_duration(audio_path)
-    if source_duration <= 0 or audio_duration <= 0:
-        raise RuntimeError("Unable to determine source durations for Sora video assembly.")
-
-    speed_factor = audio_duration / source_duration
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-y",
-            "-i",
-            str(source_video_path),
-            "-i",
-            str(audio_path),
-            "-map",
-            "0:v:0",
-            "-map",
-            "1:a:0",
-            "-vf",
-            f"setpts={speed_factor:.6f}*PTS,fps=24",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "medium",
-            "-pix_fmt",
-            "yuv420p",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-shortest",
-            "-movflags",
-            "+faststart",
-            str(output_path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
 
 
 def _clean_text(value: str) -> str:

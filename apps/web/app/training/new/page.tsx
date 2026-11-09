@@ -41,7 +41,7 @@ function getProcessingSteps(mode: "LECTURE" | "CARTOON") {
       title: mode === "CARTOON" ? "Generating animation" : "Rendering lecture visuals",
       body:
         mode === "CARTOON"
-          ? "Creating a native animated training clip with Sora from the generated lesson script and scene direction."
+          ? "Rendering an animated training lesson from the generated script and scene direction."
           : "Preparing the lecture-style lesson frames for the final video.",
     },
     {
@@ -195,7 +195,7 @@ export default function TrainingBuilderPage() {
                         <p className="mt-1 text-sm leading-6 text-[#7b654d]">
                           {buildStage === "processing"
                             ? generationMode === "CARTOON"
-                              ? "The system is building the training in sequence. Research, narration, video generation, and final assembly may take a little longer."
+                              ? "The system is building the training in sequence. Research, narration, animation, and final assembly may take a little longer."
                               : "The system is building the training in sequence. This can take a little longer while research, narration, and video assembly complete."
                             : null}
                         </p>

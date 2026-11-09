@@ -26,7 +26,7 @@ The root `.env` must contain:
 - `OPENROUTER_API_KEY`
 - `OPENROUTER_MODEL` (defaults to `openrouter/free`)
 
-OpenRouter generates the research brief, narration, slide content, and quiz. Lecture MP4s are rendered locally with Pillow and ffmpeg. `OPENAI_API_KEY` is optional and only needed for OpenAI text-to-speech or Sora cartoon clips.
+OpenRouter generates research, scripts, slide content, quizzes, and narration. Lecture and cartoon MP4s are rendered locally with Pillow and ffmpeg.
 
 Start the API:
 

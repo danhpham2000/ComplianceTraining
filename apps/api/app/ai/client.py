@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from openai import OpenAI
+import httpx
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
@@ -60,70 +60,56 @@ class AIResearchBrief(BaseModel):
     references: list[AIResearchSource]
 
 
-def _get_text_provider() -> str:
-    settings = get_settings()
-    if settings.openrouter_api_key:
-        return "openrouter"
-    if settings.openai_api_key:
-        return "openai"
-    raise RuntimeError("Neither OPENROUTER_API_KEY nor OPENAI_API_KEY is configured")
-
-
-def _get_client() -> OpenAI:
-    settings = get_settings()
-    if settings.openrouter_api_key:
-        return OpenAI(
-            base_url=settings.openrouter_base_url,
-            api_key=settings.openrouter_api_key,
-        )
-    if not settings.openai_api_key:
-        raise RuntimeError("OPENAI_API_KEY is not configured")
-    return OpenAI(api_key=settings.openai_api_key)
-
-
 def _get_text_model() -> str:
     settings = get_settings()
-    if settings.openrouter_api_key:
-        return settings.openrouter_model
-    return settings.openai_model
+    if not settings.openrouter_api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not configured")
+    return settings.openrouter_model
 
 
-def _get_text_request_options() -> dict[str, Any]:
+def _openrouter_headers() -> dict[str, str]:
     settings = get_settings()
-    if settings.openrouter_api_key:
-        return {
-            "extra_headers": {
-                "HTTP-Referer": settings.web_app_url,
-                "X-OpenRouter-Title": "NextPhase Compliance Training",
-            },
-            "extra_body": {
-                "provider": {
-                    "require_parameters": True,
-                }
-            },
-        }
-    return {}
+    if not settings.openrouter_api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is not configured")
+    return {
+        "Authorization": f"Bearer {settings.openrouter_api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": settings.web_app_url,
+        "X-OpenRouter-Title": "NextPhase Compliance Training",
+    }
 
 
 def _parse_structured_response(
     *,
     prompt: str,
-    text_format,
-    reasoning_effort: str,
-):
+    text_format: type[BaseModel],
+) -> BaseModel:
     settings = get_settings()
-    client = _get_client()
-    options = _get_text_request_options()
-    request: dict[str, Any] = {
+    payload: dict[str, Any] = {
         "model": _get_text_model(),
-        "input": [{"role": "user", "content": prompt}],
-        "text_format": text_format,
-        **options,
+        "messages": [{"role": "user", "content": prompt}],
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": text_format.__name__,
+                "strict": True,
+                "schema": text_format.model_json_schema(),
+            },
+        },
+        "provider": {"require_parameters": True},
     }
-    if _get_text_provider() == "openai":
-        request["reasoning"] = {"effort": reasoning_effort}
-    response = client.responses.parse(**request)
-    return response.output_parsed
+    try:
+        response = httpx.post(
+            f"{settings.openrouter_base_url.rstrip('/')}/chat/completions",
+            headers=_openrouter_headers(),
+            json=payload,
+            timeout=180,
+        )
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        return text_format.model_validate_json(content)
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+        raise RuntimeError(f"OpenRouter structured generation failed. {exc}") from exc
 
 
 def generate_assessment(
@@ -185,7 +171,6 @@ Transcript excerpts:
     return _parse_structured_response(
         prompt=prompt,
         text_format=AIAssessment,
-        reasoning_effort="low",
     )
 
 
@@ -198,12 +183,11 @@ Do not invent HR interpretations or employment recommendations.
 Payload:
 {payload}
 """
-    provider = _get_text_provider()
+    provider = "openrouter"
     model = _get_text_model()
     parsed = _parse_structured_response(
         prompt=prompt,
         text_format=AIPerformanceSummary,
-        reasoning_effort="low",
     )
     return parsed, provider, model, datetime.now(timezone.utc)
 
@@ -279,5 +263,4 @@ Source excerpts:
     return _parse_structured_response(
         prompt=prompt,
         text_format=AIResearchBrief,
-        reasoning_effort="medium",
     )
