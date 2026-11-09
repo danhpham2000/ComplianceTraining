@@ -89,6 +89,7 @@ def _parse_structured_response(
     payload: dict[str, Any] = {
         "model": _get_text_model(),
         "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 4096,
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -235,8 +236,8 @@ Research query: {research_query}
 Requirements:
 - Use only the source excerpts provided below.
 - Prioritize current guidance that is still relevant as of {current_label}.
-- Produce 4 to 6 sections.
-- Keep narration practical, concise, and suitable for a 3 to 5 minute training video.
+- Produce exactly 4 sections.
+- Keep the complete lesson suitable for a focused 3 to 5 minute training video.
 - Write for the ear, not the page. Use smooth spoken transitions and natural sentence rhythm.
 - The opening summary must do two things:
   1. give the audience a reason to care
@@ -248,6 +249,7 @@ Requirements:
   - sound natural when spoken aloud
   - add useful context instead of reading bullet points verbatim
   - include a practical employee-facing scenario example
+  - stay below 90 words
 - Avoid generic presentation filler such as "today we are going to talk about" or "in this presentation".
 - Avoid marketing language, robotic phrasing, and dense academic prose.
 - Every section must cite one or more source URLs from the provided material.
@@ -255,18 +257,19 @@ Requirements:
 - Focus on actionable employee behavior, manager expectations, reporting steps, and common failure modes.
 - Section headings must be short and slide-friendly, ideally 3 to 7 words.
 - Section bullets are for slides only:
-  - return 2 or 3 bullets per section
+  - return exactly 2 bullets per section
   - each bullet must be a decision cue, warning sign, or expected action
   - prefer short phrases over full sentences
 - Every section must include an `example` field:
   - one short, concrete workplace scenario or illustration with an employee, situation, and expected action
   - keep it specific and easy to visualize
   - write it so it can be shown on-screen inside the training video
+  - stay below 35 words
 - The scenario examples must not include real employee names, real secrets, passwords, customer data, or unverifiable company policy.
 - Use fictional names and generic business contexts.
-- Learning objectives must be concise and concrete.
-- The description should be one compact paragraph for the training library.
-- Return a references list containing the strongest sources actually used.
+- Return exactly 3 concise learning objectives.
+- Keep the summary and description below 60 words each.
+- Return exactly 3 references containing the strongest sources actually used.
 
 Source excerpts:
 {source_context}

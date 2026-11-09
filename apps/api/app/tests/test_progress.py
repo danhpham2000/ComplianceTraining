@@ -85,6 +85,7 @@ def test_openrouter_structured_generation_uses_json_schema(monkeypatch):
 
     assert result == Output(title="Training")
     assert captured["url"] == "https://openrouter.example/api/v1/chat/completions"
+    assert captured["json"]["max_tokens"] == 4096
     assert captured["json"]["response_format"]["type"] == "json_schema"
 
 
