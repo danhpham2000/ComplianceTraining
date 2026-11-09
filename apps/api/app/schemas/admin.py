@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.common import CourseSummaryOut, LearningObjectiveOut, QuestionAdminOut, ResearchMaterialOut
 
@@ -33,6 +33,12 @@ class TrainingDetailOut(CourseSummaryOut):
     research_material: ResearchMaterialOut | None = None
 
 
+class UpdateQuestionOptionIn(BaseModel):
+    id: uuid.UUID
+    text: str = Field(min_length=1, max_length=1000)
+    is_correct: bool
+
+
 class UpdateQuestionIn(BaseModel):
     text: str | None = None
     topic: str | None = None
@@ -40,6 +46,13 @@ class UpdateQuestionIn(BaseModel):
     hint: str | None = None
     explanation: str | None = None
     status: str | None = None
+    options: list[UpdateQuestionOptionIn] | None = Field(default=None, min_length=2, max_length=6)
+
+    @model_validator(mode="after")
+    def validate_correct_option(self):
+        if self.options is not None and sum(option.is_correct for option in self.options) != 1:
+            raise ValueError("Exactly one answer option must be marked correct.")
+        return self
 
 
 class AssignmentCreateIn(BaseModel):

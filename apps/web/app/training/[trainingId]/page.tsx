@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, Send, Trash2, Users } from "lucide-react";
+import { CheckCircle2, Pencil, Send, Trash2, Users, X } from "lucide-react";
 import { CourseVideoPlayer } from "@/components/course-video-player";
 import { EmptyState } from "@/components/empty-state";
 import { usePersona } from "@/components/persona-provider";
@@ -14,12 +14,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiRequest } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { DirectoryUser, Training } from "@/lib/types";
+import { DirectoryUser, Question, Training } from "@/lib/types";
 
 export default function TrainingDetailPage() {
   const { trainingId } = useParams<{ trainingId: string }>();
@@ -30,6 +32,7 @@ export default function TrainingDetailPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [activeCitationSection, setActiveCitationSection] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["training", trainingId, persona.email],
@@ -73,10 +76,48 @@ export default function TrainingDetailPage() {
       router.push("/dashboard");
     },
   });
+  const updateQuestion = useMutation({
+    mutationFn: ({ questionId, payload }: { questionId: string; payload: QuestionUpdatePayload }) =>
+      apiRequest<Question>(`/training/questions/${questionId}`, { method: "PATCH", body: payload }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Training>(["training", trainingId, persona.email], (current) =>
+        current
+          ? {
+              ...current,
+              questions: current.questions?.map((question) => (question.id === updated.id ? updated : question)),
+            }
+          : current,
+      );
+      setEditingQuestionId(null);
+    },
+  });
   const training = query.data;
   const isPublished = training?.status === "PUBLISHED";
   const isProcessing = training?.status === "PROCESSING";
   const isFailed = training?.status === "FAILED";
+  const canEditQuestions = training?.status === "READY" && ["OWNER", "ADMIN", "MANAGER"].includes(persona.role);
+
+  function saveQuestion(event: FormEvent<HTMLFormElement>, question: Question) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const correctOptionId = String(form.get("correct_option") ?? "");
+    const optionalValue = (name: string) => String(form.get(name) ?? "").trim() || null;
+
+    updateQuestion.mutate({
+      questionId: question.id,
+      payload: {
+        text: String(form.get("text") ?? "").trim(),
+        topic: optionalValue("topic"),
+        hint: optionalValue("hint"),
+        explanation: optionalValue("explanation"),
+        options: question.options.map((option) => ({
+          id: option.id,
+          text: String(form.get(`option_${option.id}`) ?? "").trim(),
+          is_correct: option.id === correctOptionId,
+        })),
+      },
+    });
+  }
 
   if (query.isLoading) {
     return (
@@ -389,7 +430,7 @@ export default function TrainingDetailPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-[1.05rem]">Question bank</CardTitle>
               <CardDescription className="text-sm text-[#7b8ca5]">
-                Review and approve the generated assessment separately from the source video.
+                Review and edit the generated assessment before publishing.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -415,28 +456,97 @@ export default function TrainingDetailPage() {
                 <div className="max-h-[32rem] space-y-4 overflow-y-auto pr-1">
                   {training?.questions?.map((question) => (
                     <article key={question.id} className="rounded-[1.35rem] border border-border bg-[#fcfcfe] p-5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">{question.topic ?? "General"}</Badge>
-                        <Badge variant="primary">{formatQuestionStatus(question.status)}</Badge>
-                      </div>
-                      <h4 className="mt-3 text-base font-semibold leading-7 text-foreground md:text-[17px]">
-                        {question.text}
-                      </h4>
-                      <div className="mt-4 grid gap-2">
-                        {question.options.map((option) => (
-                          <div
-                            key={option.id}
-                            className={cn(
-                              "rounded-[1rem] border px-4 py-3 text-sm leading-6",
-                              option.is_correct
-                                ? "border-primary/20 bg-[#fff3e6] text-[#6d4518]"
-                                : "border-border bg-white text-foreground",
-                            )}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">{question.topic ?? "General"}</Badge>
+                          <Badge variant="primary">{formatQuestionStatus(question.status)}</Badge>
+                        </div>
+                        {canEditQuestions ? (
+                          <Button
+                            type="button"
+                            variant={editingQuestionId === question.id ? "secondary" : "outline"}
+                            size="sm"
+                            className="h-9 rounded-full px-3"
+                            disabled={updateQuestion.isPending}
+                            onClick={() => setEditingQuestionId((current) => (current === question.id ? null : question.id))}
                           >
-                            {option.text}
-                          </div>
-                        ))}
+                            {editingQuestionId === question.id ? <X className="size-3.5" /> : <Pencil className="size-3.5" />}
+                            {editingQuestionId === question.id ? "Close" : "Edit"}
+                          </Button>
+                        ) : null}
                       </div>
+                      {editingQuestionId === question.id ? (
+                        <form className="mt-4 space-y-4" onSubmit={(event) => saveQuestion(event, question)}>
+                          <QuestionField label="Question">
+                            <Textarea name="text" defaultValue={question.text} required className="min-h-24 resize-y bg-white" />
+                          </QuestionField>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <QuestionField label="Topic">
+                              <Input name="topic" defaultValue={question.topic ?? ""} className="bg-white" />
+                            </QuestionField>
+                            <QuestionField label="Hint">
+                              <Input name="hint" defaultValue={question.hint ?? ""} className="bg-white" />
+                            </QuestionField>
+                          </div>
+                          <QuestionField label="Answer choices">
+                            <div className="space-y-2">
+                              {question.options.map((option) => (
+                                <label key={option.id} className="flex items-center gap-3 rounded-xl border border-border bg-white px-3 py-2.5">
+                                  <input
+                                    type="radio"
+                                    name="correct_option"
+                                    value={option.id}
+                                    defaultChecked={option.is_correct}
+                                    className="size-4 accent-[#f38820]"
+                                    aria-label={`Mark ${option.text} as correct`}
+                                  />
+                                  <Input name={`option_${option.id}`} defaultValue={option.text} required className="h-9 border-0 bg-transparent px-1 shadow-none" />
+                                </label>
+                              ))}
+                            </div>
+                            <p className="text-xs text-muted-foreground">Select the radio button beside the one correct answer.</p>
+                          </QuestionField>
+                          <QuestionField label="Explanation">
+                            <Textarea name="explanation" defaultValue={question.explanation ?? ""} className="min-h-20 resize-y bg-white" />
+                          </QuestionField>
+                          {updateQuestion.isError ? (
+                            <p className="text-sm text-destructive">
+                              {updateQuestion.error instanceof Error ? updateQuestion.error.message : "Could not save this question."}
+                            </p>
+                          ) : null}
+                          <div className="flex justify-end gap-2 border-t border-border/80 pt-4">
+                            <Button type="button" variant="outline" className="h-10 px-4" disabled={updateQuestion.isPending} onClick={() => setEditingQuestionId(null)}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" className="h-10 px-4" disabled={updateQuestion.isPending}>
+                              {updateQuestion.isPending ? <Spinner className="size-4" /> : null}
+                              {updateQuestion.isPending ? "Saving..." : "Save question"}
+                            </Button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <h4 className="mt-3 text-base font-semibold leading-7 text-foreground md:text-[17px]">
+                            {question.text}
+                          </h4>
+                          <div className="mt-4 grid gap-2">
+                            {question.options.map((option) => (
+                              <div
+                                key={option.id}
+                                className={cn(
+                                  "rounded-[1rem] border px-4 py-3 text-sm leading-6",
+                                  option.is_correct
+                                    ? "border-primary/20 bg-[#fff3e6] text-[#6d4518]"
+                                    : "border-border bg-white text-foreground",
+                                )}
+                              >
+                                {option.text}
+                              </div>
+                            ))}
+                          </div>
+                          {question.explanation ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{question.explanation}</p> : null}
+                        </>
+                      )}
                     </article>
                   ))}
                 </div>
@@ -564,6 +674,23 @@ export default function TrainingDetailPage() {
         </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+type QuestionUpdatePayload = {
+  text: string;
+  topic: string | null;
+  hint: string | null;
+  explanation: string | null;
+  options: { id: string; text: string; is_correct: boolean }[];
+};
+
+function QuestionField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      {children}
+    </div>
   );
 }
 

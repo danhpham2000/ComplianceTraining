@@ -536,12 +536,23 @@ def update_question(question_id, payload: UpdateQuestionIn, db: DBSession, actor
         .join(TrainingVersion, TrainingVersion.id == Question.training_version_id)
         .join(TrainingCourse, TrainingCourse.id == TrainingVersion.course_id)
         .where(Question.id == question_id, TrainingCourse.organization_id == actor.organization_id)
-        .options(selectinload(Question.options))
+        .options(selectinload(Question.options), selectinload(Question.training_version))
     ).scalar_one_or_none()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    if question.training_version.status != "READY":
+        raise HTTPException(status_code=400, detail="Questions can only be edited before publishing.")
+
+    for field, value in payload.model_dump(exclude_unset=True, exclude={"options"}).items():
         setattr(question, field, value)
+    if payload.options is not None:
+        options_by_id = {option.id: option for option in question.options}
+        if {option.id for option in payload.options} != set(options_by_id):
+            raise HTTPException(status_code=400, detail="Question options do not match this question.")
+        for option_update in payload.options:
+            option = options_by_id[option_update.id]
+            option.text = option_update.text
+            option.is_correct = option_update.is_correct
     db.commit()
     db.refresh(question)
     return QuestionAdminOut.model_validate(question)

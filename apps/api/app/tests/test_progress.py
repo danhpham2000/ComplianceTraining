@@ -10,6 +10,7 @@ from app.api.routes.auth import register
 from app.api.routes import notifications as notification_routes
 from app.core.config import Settings
 from app.schemas.auth import RegisterRequest
+from app.schemas.admin import UpdateQuestionIn
 from app.services.progress import record_video_progress
 from app.services import research_training
 from app.services.security import require_allowed_email
@@ -143,6 +144,18 @@ def test_research_brief_requests_a_three_to_five_minute_spoken_script(monkeypatc
     assert "Produce exactly 5 sections." in prompt
     assert "55 to 70 spoken words" in prompt
     assert "90 to 110 spoken words" in prompt
+
+
+def test_question_update_requires_one_correct_answer():
+    with pytest.raises(ValueError, match="Exactly one answer"):
+        UpdateQuestionIn.model_validate(
+            {
+                "options": [
+                    {"id": "00000000-0000-0000-0000-000000000001", "text": "One", "is_correct": False},
+                    {"id": "00000000-0000-0000-0000-000000000002", "text": "Two", "is_correct": False},
+                ]
+            }
+        )
 
 
 def test_openrouter_tts_writes_wav(monkeypatch, tmp_path):
