@@ -21,13 +21,12 @@ import { Training } from "@/lib/types";
 
 const schema = z.object({
   researchQuery: z.string().min(6),
-  generationMode: z.enum(["LECTURE", "CARTOON"]),
   questionCount: z.coerce.number().min(3).max(12),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-function getProcessingSteps(mode: "LECTURE" | "CARTOON") {
+function getProcessingSteps() {
   return [
     {
       title: "Researching live sources",
@@ -38,11 +37,8 @@ function getProcessingSteps(mode: "LECTURE" | "CARTOON") {
       body: "Turning the research into a focused training outline and narrated script.",
     },
     {
-      title: mode === "CARTOON" ? "Generating animation" : "Rendering lecture visuals",
-      body:
-        mode === "CARTOON"
-          ? "Rendering an animated training lesson from the generated script and scene direction."
-          : "Preparing the lecture-style lesson frames for the final video.",
+      title: "Rendering lecture visuals",
+      body: "Preparing the lecture-style lesson frames for the final video.",
     },
     {
       title: "Assembling training package",
@@ -66,13 +62,11 @@ export default function TrainingBuilderPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       researchQuery: "",
-      generationMode: "LECTURE",
       questionCount: 6,
     },
   });
   const questionCount = useWatch({ control: form.control, name: "questionCount" });
-  const generationMode = useWatch({ control: form.control, name: "generationMode" });
-  const processingSteps = getProcessingSteps(generationMode);
+  const processingSteps = getProcessingSteps();
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -83,7 +77,6 @@ export default function TrainingBuilderPage() {
         email: persona.email,
         body: {
           research_query: values.researchQuery,
-          generation_mode: values.generationMode,
           question_count: values.questionCount,
         },
       });
@@ -129,31 +122,13 @@ export default function TrainingBuilderPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Research topic" error={form.formState.errors.researchQuery?.message}>
-                  <Input
-                    className="h-11"
-                    placeholder="Security awareness best practices for remote employees"
-                    {...form.register("researchQuery")}
-                  />
-                </Field>
-                <Field label="Video format" error={form.formState.errors.generationMode?.message}>
-                  <Select
-                    value={generationMode}
-                    onValueChange={(value: "LECTURE" | "CARTOON") =>
-                      form.setValue("generationMode", value, { shouldValidate: true })
-                    }
-                  >
-                    <SelectTrigger className="h-11 rounded-2xl">
-                      <SelectValue placeholder="Select video format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LECTURE">Lecture (Slide)</SelectItem>
-                      <SelectItem value="CARTOON">Animation (Cartoon)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
+              <Field label="Research topic" error={form.formState.errors.researchQuery?.message}>
+                <Input
+                  className="h-11"
+                  placeholder="Security awareness best practices for remote employees"
+                  {...form.register("researchQuery")}
+                />
+              </Field>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Question count" error={form.formState.errors.questionCount?.message}>
                   <Select
@@ -194,9 +169,7 @@ export default function TrainingBuilderPage() {
                         <p className="text-sm font-semibold text-foreground">Processing workflow</p>
                         <p className="mt-1 text-sm leading-6 text-[#7b654d]">
                           {buildStage === "processing"
-                            ? generationMode === "CARTOON"
-                              ? "The system is building the training in sequence. Research, narration, animation, and final assembly may take a little longer."
-                              : "The system is building the training in sequence. This can take a little longer while research, narration, and video assembly complete."
+                            ? "The system is building the training in sequence. This can take a little longer while research, narration, and video assembly complete."
                             : null}
                         </p>
                       </div>

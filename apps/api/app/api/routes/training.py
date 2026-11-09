@@ -78,7 +78,6 @@ def _run_research_training_build(
     organization_id,
     actor_user_id,
     research_query: str,
-    generation_mode: str,
     question_count: int,
 ) -> None:
     db = SessionLocal()
@@ -92,7 +91,6 @@ def _run_research_training_build(
             training_id=str(training_id),
             title=course.title,
             research_query=research_query,
-            generation_mode=generation_mode,
             question_count=question_count,
             script_profile_name=organization.ai_script_profile_name,
             script_markdown=organization.ai_script_markdown,
@@ -156,7 +154,7 @@ def _run_research_training_build(
             action="RESEARCH_TRAINING_READY",
             entity_type="training_course",
             entity_id=course.id,
-            metadata={"query": research_query, "generation_mode": generation_mode, "question_count": question_count},
+            metadata={"query": research_query, "question_count": question_count},
         )
         notify_training_build_completed(
             db,
@@ -183,7 +181,7 @@ def _run_research_training_build(
             action="RESEARCH_TRAINING_FAILED",
             entity_type="training_course",
             entity_id=course.id,
-            metadata={"query": research_query, "generation_mode": generation_mode, "error": error_message[:240]},
+            metadata={"query": research_query, "error": error_message[:240]},
         )
         notify_training_build_failed(
             db,
@@ -215,13 +213,6 @@ def derive_training_title(research_query: str) -> str:
         return cleaned[0].upper() + cleaned[1:]
     shortened = cleaned[:85].rsplit(" ", 1)[0].strip()
     return f"{shortened}..."
-
-
-def normalize_generation_mode(mode: str | None) -> str:
-    normalized = (mode or "LECTURE").strip().upper()
-    if normalized not in {"LECTURE", "CARTOON"}:
-        raise HTTPException(status_code=422, detail="generation_mode must be LECTURE or CARTOON")
-    return normalized
 
 
 def mark_stale_processing_build(course: TrainingCourse) -> bool:
@@ -370,7 +361,6 @@ def build_research_training_course(
 ):
     require_roles(actor, "OWNER", "ADMIN", "MANAGER")
     title = derive_training_title(payload.research_query)
-    generation_mode = normalize_generation_mode(payload.generation_mode)
     course = TrainingCourse(
         organization_id=actor.organization_id,
         title=title,
@@ -393,7 +383,6 @@ def build_research_training_course(
         metadata={
             "query": payload.research_query,
             "question_count": payload.question_count,
-            "generation_mode": generation_mode,
         },
     )
     db.commit()
@@ -402,7 +391,6 @@ def build_research_training_course(
         organization_id=actor.organization_id,
         actor_user_id=actor.user.id,
         research_query=payload.research_query,
-        generation_mode=generation_mode,
         question_count=payload.question_count,
     )
     return get_training(course.id, db, actor)

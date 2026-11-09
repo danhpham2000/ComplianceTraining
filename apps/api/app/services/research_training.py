@@ -1,11 +1,9 @@
 import json
-import math
 import re
 import shutil
 import subprocess
 import wave
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 from textwrap import shorten
 from urllib.parse import urlparse
@@ -25,14 +23,7 @@ PRIMARY = "#f38820"
 PRIMARY_SOFT = "#fff4e8"
 INK = "#16181d"
 MUTED = "#6f819c"
-CARD = "#fffdfa"
 BORDER = "#eadfd1"
-PALETTES = [
-    ("#fff7ef", "#ffd8b0", "#ffedd5"),
-    ("#eef7ff", "#c7e3ff", "#eff6ff"),
-    ("#f2fff4", "#c7f1cf", "#ecfdf3"),
-    ("#fff2f6", "#ffd0df", "#fff1f5"),
-]
 
 
 @dataclass
@@ -54,7 +45,6 @@ def build_research_training(
     training_id: str,
     title: str,
     research_query: str,
-    generation_mode: str,
     question_count: int,
     script_profile_name: str | None = None,
     script_markdown: str | None = None,
@@ -72,7 +62,6 @@ def build_research_training(
         training_id=training_id,
         title=title,
         brief=brief,
-        generation_mode=generation_mode,
     )
     assessment = generate_assessment(
         title=title,
@@ -92,7 +81,7 @@ def build_research_training(
         video_url=render_result["video_url"],
         thumbnail_url=render_result["thumbnail_url"],
         duration_seconds=render_result["duration_seconds"],
-        source_title=f"{title} {'cartoon lesson' if generation_mode == 'CARTOON' else 'lecture lesson'}",
+        source_title=f"{title} lecture lesson",
         source_references=[item.model_dump() for item in brief.references],
     )
 
@@ -198,7 +187,7 @@ def _build_source_context(results: list[dict]) -> str:
     return "\n\n".join(blocks)
 
 
-def _render_training_video(*, training_id: str, title: str, brief, generation_mode: str) -> dict:
+def _render_training_video(*, training_id: str, title: str, brief) -> dict:
     asset_dir = GENERATED_ROOT / training_id
     if asset_dir.exists():
         shutil.rmtree(asset_dir, ignore_errors=True)
@@ -236,50 +225,23 @@ def _render_training_video(*, training_id: str, title: str, brief, generation_mo
         chunk_path = asset_dir / f"chunk-{index:02d}.mp4"
         _synthesize_speech(slide["narration"], audio_path)
         duration = max(4, round(_probe_duration(audio_path)))
-        if generation_mode == "CARTOON":
-            frame_dir = asset_dir / f"frames-{index:02d}"
-            _render_cartoon_frames(
-                frame_dir=frame_dir,
+        if index == 1:
+            _render_lecture_intro_frame(
+                image_path=image_path,
+                training_title=title,
+                summary=slide["narration"],
+                bullets=slide["bullets"],
+            )
+        else:
+            _render_lecture_frame(
+                image_path=image_path,
                 training_title=title,
                 heading=slide["heading"],
-                narration=slide["narration"],
                 bullets=slide["bullets"],
+                example=slide["example"],
                 source_urls=slide["sourceUrls"],
-                scene_index=index - 1,
-                duration_seconds=duration,
             )
-            _render_video_chunk(
-                image_path=None,
-                audio_path=audio_path,
-                output_path=chunk_path,
-                animated=True,
-                frame_pattern=str(frame_dir / "frame-%04d.png"),
-            )
-            if not thumbnail_path.exists():
-                shutil.copyfile(frame_dir / "frame-0000.png", thumbnail_path)
-        else:
-            if index == 1:
-                _render_lecture_intro_frame(
-                    image_path=image_path,
-                    training_title=title,
-                    summary=slide["narration"],
-                    bullets=slide["bullets"],
-                )
-            else:
-                _render_lecture_frame(
-                    image_path=image_path,
-                    training_title=title,
-                    heading=slide["heading"],
-                    bullets=slide["bullets"],
-                    example=slide["example"],
-                    source_urls=slide["sourceUrls"],
-                )
-            _render_video_chunk(
-                image_path=image_path,
-                audio_path=audio_path,
-                output_path=chunk_path,
-                animated=False,
-            )
+        _render_video_chunk(image_path=image_path, audio_path=audio_path, output_path=chunk_path)
         concat_lines.append(f"file '{chunk_path.name}'")
         transcript_parts.append(
             "\n".join(
@@ -305,11 +267,7 @@ def _render_training_video(*, training_id: str, title: str, brief, generation_mo
         current_second += duration
 
     if not thumbnail_path.exists():
-        fallback_slide = asset_dir / "slide-01.png"
-        if fallback_slide.exists():
-            shutil.copyfile(fallback_slide, thumbnail_path)
-        else:
-            _extract_video_thumbnail(asset_dir / "chunk-01.mp4", thumbnail_path)
+        shutil.copyfile(asset_dir / "slide-01.png", thumbnail_path)
 
     concat_file = asset_dir / "concat.txt"
     concat_file.write_text("\n".join(concat_lines), encoding="utf-8")
@@ -502,131 +460,6 @@ def _render_lecture_frame(
     image.save(image_path)
 
 
-def _draw_example_callout(
-    *,
-    draw: ImageDraw.ImageDraw,
-    x: int,
-    y: int,
-    width: int,
-    title: str,
-    text: str,
-) -> None:
-    height = 114
-    draw.rounded_rectangle((x, y, x + width, y + height), radius=28, fill="#fff7ef", outline=BORDER, width=2)
-    draw.rounded_rectangle((x + 20, y + 18, x + 132, y + 50), radius=16, fill="#fff0df")
-    draw.ellipse((x + 22, y + 62, x + 38, y + 78), fill=PRIMARY)
-    label_font = _load_font(15, bold=True)
-    body_font = _load_font(18)
-    draw.text((x + 38, y + 24), title.upper(), fill=PRIMARY, font=label_font)
-    draw.text((x + 48, y + 56), "Scenario", fill="#9a7b5c", font=label_font)
-    _draw_wrapped_text(
-        draw=draw,
-        x=x + 156,
-        y=y + 56,
-        lines=_wrap_text(_format_slide_bullet(text, max_chars=126), body_font, width - 184)[:2],
-        font=body_font,
-        fill=INK,
-        line_height=24,
-    )
-
-
-def _render_cartoon_frames(
-    *,
-    frame_dir: Path,
-    training_title: str,
-    heading: str,
-    narration: str,
-    bullets: list[str],
-    source_urls: list[str],
-    scene_index: int,
-    duration_seconds: int,
-) -> None:
-    if frame_dir.exists():
-        shutil.rmtree(frame_dir, ignore_errors=True)
-    frame_dir.mkdir(parents=True, exist_ok=True)
-
-    frame_count = max(duration_seconds * 12, 60)
-    for frame_index in range(frame_count):
-        phase = frame_index / frame_count
-        _render_cartoon_frame(
-            image_path=frame_dir / f"frame-{frame_index:04d}.png",
-            training_title=training_title,
-            heading=heading,
-            narration=narration,
-            bullets=bullets,
-            source_urls=source_urls,
-            scene_index=scene_index,
-            phase=phase,
-        )
-
-
-def _render_cartoon_frame(
-    *,
-    image_path: Path,
-    training_title: str,
-    heading: str,
-    narration: str,
-    bullets: list[str],
-    source_urls: list[str],
-    scene_index: int,
-    phase: float,
-) -> None:
-    background, accent, panel = PALETTES[scene_index % len(PALETTES)]
-    image = Image.new("RGBA", VIDEO_SIZE, background)
-    draw = ImageDraw.Draw(image, "RGBA")
-
-    orbit = math.tau * phase
-    bob = math.sin(orbit) * 12
-    wave = math.sin(orbit * 1.8) * 18
-
-    draw.rounded_rectangle((26, 26, 1254, 694), radius=40, fill=panel, outline=BORDER, width=2)
-    draw.ellipse((888, -72, 1280, 240), fill=(*_hex_to_rgb(accent), 105))
-    draw.ellipse((-140, 450, 250, 820), fill=(255, 255, 255, 120))
-    draw.ellipse((920, 470, 1320, 900), fill=(255, 255, 255, 72))
-    _draw_particle_field(draw, phase=phase, accent=accent, scene_index=scene_index)
-    _draw_cloud(draw, x=140 + math.sin(orbit * 0.6) * 18, y=98, scale=1.0)
-    _draw_cloud(draw, x=930 + math.cos(orbit * 0.7) * 22, y=136, scale=0.82)
-
-    heading_font = _load_font(54, bold=True)
-    sub_font = _load_font(27)
-    bubble_font = _load_font(26)
-    caption_font = _load_font(22)
-    badge_font = _load_font(18, bold=True)
-
-    draw.rounded_rectangle((74, 76, 260, 116), radius=20, fill=(255, 255, 255, 235))
-    draw.text((94, 87), "ANIMATED LESSON", fill=PRIMARY, font=badge_font)
-    draw.text((88, 150), heading, fill=INK, font=heading_font)
-    draw.text((90, 222), shorten(training_title, width=60, placeholder="..."), fill=MUTED, font=sub_font)
-
-    scene_kind = _pick_scene_kind(f"{heading} {' '.join(bullets)} {narration}")
-    _draw_cartoon_logo_scene(
-        image=image,
-        draw=draw,
-        x=128,
-        y=312 + bob,
-        accent=PRIMARY,
-        scene_kind=scene_kind,
-        background_accent=accent,
-        phase=phase,
-        wave=wave,
-    )
-
-    bubble_text = bullets[:2] or [shorten(narration, width=96, placeholder="...")]
-    _draw_speech_bubble(
-        draw,
-        x=560,
-        y=280,
-        width=590,
-        lines=bubble_text,
-        font=bubble_font,
-    )
-
-    takeaway = shorten(bullets[0] if bullets else narration, width=118, placeholder="...")
-    draw.rounded_rectangle((86, 604, 1196, 660), radius=22, fill=(255, 255, 255, 236))
-    draw.text((118, 617), f"Today’s reminder: {takeaway}", fill=INK, font=caption_font)
-    image.convert("RGB").save(image_path)
-
-
 def _load_logo() -> Image.Image | None:
     if not LOGO_PATH.exists():
         return None
@@ -639,19 +472,6 @@ def _paste_logo_bottom_right(image: Image.Image, *, x: int, y: int) -> None:
     logo = _load_logo()
     if logo:
         image.paste(logo, (x, y), logo)
-
-
-@lru_cache(maxsize=1)
-def _load_logo_mark() -> Image.Image | None:
-    if not LOGO_PATH.exists():
-        return None
-    logo = Image.open(LOGO_PATH).convert("RGBA")
-    crop_width = min(int(logo.width * 0.24), 240)
-    mark = logo.crop((0, 0, crop_width, logo.height))
-    bbox = mark.getbbox()
-    if bbox:
-        mark = mark.crop(bbox)
-    return mark
 
 
 def _load_font(size: int, *, bold: bool = False) -> ImageFont.ImageFont:
@@ -796,42 +616,28 @@ def _probe_duration(path: Path) -> float:
     return float(payload["format"]["duration"])
 
 
-def _extract_video_thumbnail(source_video_path: Path, thumbnail_path: Path) -> None:
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-y",
-            "-i",
-            str(source_video_path),
-            "-vf",
-            "thumbnail,scale=1280:720",
-            "-frames:v",
-            "1",
-            str(thumbnail_path),
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-
 def _render_video_chunk(
     *,
-    image_path: Path | None,
+    image_path: Path,
     audio_path: Path,
     output_path: Path,
-    animated: bool,
-    frame_pattern: str | None = None,
 ) -> None:
-    command = ["ffmpeg", "-y"]
-    if animated and frame_pattern:
-        command.extend(["-framerate", "12", "-i", frame_pattern, "-i", str(audio_path)])
-        command.extend(["-vf", "fps=24", "-c:v", "libx264", "-preset", "medium"])
-    else:
-        if image_path is None:
-            raise RuntimeError("image_path is required for non-animated video chunks")
-        command.extend(["-loop", "1", "-i", str(image_path), "-i", str(audio_path)])
-        command.extend(["-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage"])
+    command = [
+        "ffmpeg",
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        str(image_path),
+        "-i",
+        str(audio_path),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-tune",
+        "stillimage",
+    ]
     command.extend(
         [
             "-pix_fmt",
@@ -851,213 +657,3 @@ def _render_video_chunk(
 
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()
-
-
-def _source_labels(urls: list[str]) -> list[str]:
-    labels: list[str] = []
-    for url in urls:
-        host = urlparse(url).netloc.replace("www.", "")
-        if host:
-            labels.append(host)
-    return labels
-
-
-def _pick_scene_kind(text: str) -> str:
-    lowered = text.lower()
-    if any(keyword in lowered for keyword in ["email", "message", "phish", "attachment"]):
-        return "email"
-    if any(keyword in lowered for keyword in ["password", "login", "credential", "account"]):
-        return "lock"
-    if any(keyword in lowered for keyword in ["wifi", "network", "public wi-fi", "hotspot", "travel"]):
-        return "wifi"
-    if any(keyword in lowered for keyword in ["report", "alert", "incident", "notify"]):
-        return "alert"
-    if any(keyword in lowered for keyword in ["policy", "data", "privacy", "share", "access"]):
-        return "clipboard"
-    return "shield"
-
-
-def _draw_cartoon_logo_scene(
-    image: Image.Image,
-    draw: ImageDraw.ImageDraw,
-    *,
-    x: int,
-    y: int,
-    accent: str,
-    scene_kind: str,
-    background_accent: str,
-    phase: float,
-    wave: float,
-) -> None:
-    shadow_y = y + 264
-    draw.ellipse((x + 54, shadow_y, x + 380, shadow_y + 50), fill=(50, 60, 80, 42))
-    draw.ellipse((x + 36, y + 18, x + 396, y + 332), fill=(255, 255, 255, 90))
-    draw.ellipse((x + 86, y + 54, x + 344, y + 284), fill=(255, 255, 255, 138))
-    panel_y = y + 36 + math.sin(phase * math.tau * 1.3) * 4
-    draw.rounded_rectangle((x + 266, panel_y, x + 388, panel_y + 108), radius=24, fill="#ffffff", outline=BORDER, width=3)
-    draw.text((x + 286, panel_y + 18), "FOCUS", fill=MUTED, font=_load_font(16, bold=True))
-    _draw_scene_icon(draw, scene_kind=scene_kind, x=x + 294, y=int(panel_y + 34), accent=accent)
-    _draw_starburst(draw, x=x + 104, y=y + 34, size=14, fill=PRIMARY_SOFT)
-    _draw_starburst(draw, x=x + 360, y=y + 180, size=11, fill=PRIMARY_SOFT)
-
-    _draw_logo_character(image, draw, x=x + 42, y=y + 30, accent=accent, phase=phase, wave=wave)
-
-
-def _draw_logo_character(
-    image: Image.Image,
-    draw: ImageDraw.ImageDraw,
-    *,
-    x: int,
-    y: int,
-    accent: str,
-    phase: float,
-    wave: float,
-) -> None:
-    body = _load_logo_mark()
-    if body:
-        body = body.copy()
-        body.thumbnail((338, 338))
-        body_x = int(x + 36)
-        body_y = int(y + 58)
-        image.paste(body, (body_x, body_y), body)
-        body_box = (body_x, body_y, body_x + body.width, body_y + body.height)
-    else:
-        body_box = (x + 76, y + 82, x + 292, y + 322)
-        draw.rounded_rectangle(body_box, radius=48, fill=accent, outline=INK, width=5)
-
-    left, top, right, bottom = body_box
-    center_x = (left + right) // 2
-    top_y = top - 44
-    blink = abs(math.sin(phase * math.tau * 2.0)) < 0.08
-    eye_height = 10 if blink else 44
-
-    draw.line([(center_x - 64, top_y - 18), (center_x - 24, top_y - 30)], fill=INK, width=5)
-    draw.line([(center_x + 24, top_y - 30), (center_x + 66, top_y - 18)], fill=INK, width=5)
-    draw.ellipse((center_x - 88, top_y, center_x - 18, top_y + eye_height + 30), fill="#ffffff", outline=INK, width=4)
-    draw.ellipse((center_x + 8, top_y, center_x + 78, top_y + eye_height + 30), fill="#ffffff", outline=INK, width=4)
-    pupil_y = top_y + 26
-    if not blink:
-        pupil_offset = math.sin(phase * math.tau) * 5
-        draw.ellipse((center_x - 66 + pupil_offset, pupil_y, center_x - 40 + pupil_offset, pupil_y + 24), fill=INK)
-        draw.ellipse((center_x + 28 + pupil_offset, pupil_y, center_x + 54 + pupil_offset, pupil_y + 24), fill=INK)
-        draw.ellipse((center_x - 56 + pupil_offset, pupil_y + 7, center_x - 49 + pupil_offset, pupil_y + 14), fill="#ffffff")
-        draw.ellipse((center_x + 38 + pupil_offset, pupil_y + 7, center_x + 45 + pupil_offset, pupil_y + 14), fill="#ffffff")
-
-    mouth_y = top + 114
-    draw.arc((center_x - 34, mouth_y, center_x + 42, mouth_y + 42), start=10, end=170, fill=INK, width=4)
-    draw.ellipse((center_x - 10, mouth_y + 18, center_x + 6, mouth_y + 30), fill=PRIMARY)
-
-    left_arm = [(left + 6, top + 126), (left - 40, top + 184), (left - 20, top + 250)]
-    right_arm = [(right - 8, top + 124), (right + 50, top + 72 - wave * 0.4), (right + 84, top + 130 - wave * 0.5)]
-    draw.line(left_arm, fill=INK, width=10, joint="curve")
-    draw.line(right_arm, fill=INK, width=10, joint="curve")
-    _draw_glove(draw, x=left - 30, y=top + 246, waving=False)
-    _draw_glove(draw, x=right + 92, y=top + 128 - wave * 0.5, waving=True)
-
-    left_leg_x = left + 92
-    right_leg_x = left + 194
-    lift = math.sin(phase * math.tau * 1.4) * 8
-    draw.line([(left_leg_x, bottom - 18), (left_leg_x - 8, bottom + 74 + lift)], fill=INK, width=10)
-    draw.line([(right_leg_x, bottom - 18), (right_leg_x + 10, bottom + 78 - lift)], fill=INK, width=10)
-    _draw_shoe(draw, x=left_leg_x - 40, y=bottom + 64 + lift, color="#30d4ff")
-    _draw_shoe(draw, x=right_leg_x - 26, y=bottom + 68 - lift, color="#30d4ff")
-
-
-def _draw_scene_icon(draw: ImageDraw.ImageDraw, *, scene_kind: str, x: int, y: int, accent: str) -> None:
-    if scene_kind == "email":
-        draw.rounded_rectangle((x, y, x + 78, y + 54), radius=14, outline=accent, width=5)
-        draw.line((x + 6, y + 8, x + 39, y + 30, x + 72, y + 8), fill=accent, width=5)
-        return
-    if scene_kind == "lock":
-        draw.rounded_rectangle((x + 10, y + 24, x + 68, y + 74), radius=12, outline=accent, width=5)
-        draw.arc((x + 18, y - 2, x + 60, y + 42), start=180, end=360, fill=accent, width=5)
-        return
-    if scene_kind == "alert":
-        draw.ellipse((x + 10, y + 6, x + 68, y + 64), outline=accent, width=5)
-        draw.line((x + 39, y + 18, x + 39, y + 42), fill=accent, width=5)
-        draw.ellipse((x + 35, y + 48, x + 43, y + 56), fill=accent)
-        return
-    draw.rounded_rectangle((x + 10, y + 10, x + 68, y + 66), radius=14, outline=accent, width=5)
-    draw.line((x + 39, y + 18, x + 39, y + 58), fill=accent, width=5)
-    draw.line((x + 24, y + 36, x + 54, y + 36), fill=accent, width=5)
-
-
-def _draw_glove(draw: ImageDraw.ImageDraw, *, x: float, y: float, waving: bool) -> None:
-    draw.ellipse((x - 24, y - 22, x + 24, y + 24), fill="#ffffff", outline=INK, width=3)
-    finger_offsets = [(-18, -42), (-4, -48), (10, -44), (22, -30)]
-    if waving:
-        finger_offsets.append((32, -10))
-    for fx, fy in finger_offsets:
-        draw.ellipse((x + fx - 8, y + fy - 10, x + fx + 8, y + fy + 12), fill="#ffffff", outline=INK, width=2)
-
-
-def _draw_shoe(draw: ImageDraw.ImageDraw, *, x: float, y: float, color: str) -> None:
-    draw.rounded_rectangle((x, y, x + 74, y + 32), radius=16, fill=color, outline=INK, width=3)
-
-
-def _draw_particle_field(draw: ImageDraw.ImageDraw, *, phase: float, accent: str, scene_index: int) -> None:
-    accent_rgb = _hex_to_rgb(accent)
-    for idx in range(16):
-        travel = phase * math.tau + (idx * 0.48) + scene_index
-        x = 78 + (idx * 71 % 1120) + math.sin(travel * 1.2) * (18 + idx)
-        y = 112 + (idx * 43 % 470) + math.cos(travel * 1.4) * (12 + idx * 0.35)
-        radius = 4 + (idx % 4) * 3
-        alpha = 60 + (idx % 3) * 28
-        fill = (*accent_rgb, alpha) if idx % 2 == 0 else (255, 255, 255, 96)
-        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=fill)
-
-
-def _draw_cloud(draw: ImageDraw.ImageDraw, *, x: float, y: float, scale: float) -> None:
-    color = (255, 255, 255, 208)
-    circles = [
-        (x, y + 12 * scale, 34 * scale),
-        (x + 30 * scale, y, 40 * scale),
-        (x + 64 * scale, y + 10 * scale, 32 * scale),
-        (x + 96 * scale, y + 16 * scale, 24 * scale),
-    ]
-    for cx, cy, radius in circles:
-        draw.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=color)
-    draw.rounded_rectangle((x - 10 * scale, y + 18 * scale, x + 116 * scale, y + 48 * scale), radius=18, fill=color)
-
-
-def _draw_starburst(draw: ImageDraw.ImageDraw, *, x: float, y: float, size: float, fill: str) -> None:
-    rgb = _hex_to_rgb(fill)
-    draw.polygon(
-        [
-            (x, y - size),
-            (x + size * 0.32, y - size * 0.28),
-            (x + size, y),
-            (x + size * 0.32, y + size * 0.28),
-            (x, y + size),
-            (x - size * 0.32, y + size * 0.28),
-            (x - size, y),
-            (x - size * 0.32, y - size * 0.28),
-        ],
-        fill=(*rgb, 220),
-    )
-
-
-def _hex_to_rgb(color: str) -> tuple[int, int, int]:
-    value = color.lstrip("#")
-    return tuple(int(value[index : index + 2], 16) for index in (0, 2, 4))
-
-
-def _draw_speech_bubble(
-    draw: ImageDraw.ImageDraw,
-    *,
-    x: int,
-    y: int,
-    width: int,
-    lines: list[str],
-    font: ImageFont.ImageFont,
-) -> None:
-    wrapped: list[str] = []
-    for line in lines[:2]:
-        wrapped.extend(_wrap_text(shorten(line, width=80, placeholder="..."), font, width - 60))
-    text_height = max(88, 18 + len(wrapped) * 36)
-    draw.rounded_rectangle((x, y, x + width, y + text_height), radius=30, fill="#ffffff", outline=BORDER, width=2)
-    draw.polygon([(x + 72, y + text_height), (x + 118, y + text_height), (x + 92, y + text_height + 28)], fill="#ffffff", outline=BORDER)
-    cursor_y = y + 22
-    for line in wrapped[:4]:
-        draw.text((x + 28, cursor_y), line, fill=INK, font=font)
-        cursor_y += 34

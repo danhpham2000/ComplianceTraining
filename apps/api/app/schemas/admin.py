@@ -19,7 +19,6 @@ class GenerateAssessmentIn(BaseModel):
 
 class ResearchTrainingBuildIn(BaseModel):
     research_query: str = Field(min_length=6)
-    generation_mode: str = Field(default="LECTURE")
     question_count: int = Field(default=6, ge=3, le=12)
 
 
