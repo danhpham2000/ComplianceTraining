@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.ai import client as ai_client
 from app.api.routes.auth import register
+from app.core.config import Settings
 from app.schemas.auth import RegisterRequest
 from app.services.progress import record_video_progress
 from app.services import research_training
@@ -118,3 +119,10 @@ def test_openrouter_tts_writes_wav(monkeypatch, tmp_path):
     assert captured["url"] == "https://openrouter.example/api/v1/audio/speech"
     assert captured["json"]["model"] == "google/gemini-3.8-flash-tts"
     assert captured["json"]["response_format"] == "pcm"
+
+
+def test_default_cors_allows_the_local_frontend_ports():
+    origins = Settings(database_url="postgresql://example").cors_origins
+
+    assert "http://localhost:3000" in origins
+    assert "http://localhost:3001" in origins
