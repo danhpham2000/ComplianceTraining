@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.ai import client as ai_client
 from app.api.routes.auth import register
+from app.api.routes import notifications as notification_routes
 from app.core.config import Settings
 from app.schemas.auth import RegisterRequest
 from app.services.progress import record_video_progress
@@ -87,6 +88,35 @@ def test_openrouter_structured_generation_uses_json_schema(monkeypatch):
     assert captured["json"]["response_format"]["type"] == "json_schema"
 
 
+def test_openrouter_retries_an_empty_structured_response(monkeypatch):
+    class Output(BaseModel):
+        title: str
+
+    class Response:
+        def __init__(self, content):
+            self.content = content
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"finish_reason": "stop", "message": {"content": self.content}}]}
+
+    responses = iter([Response(None), Response('{"title":"Training"}')])
+    settings = SimpleNamespace(
+        openrouter_api_key="test-key",
+        openrouter_base_url="https://openrouter.example/api/v1",
+        openrouter_model="test/model",
+        web_app_url="https://app.example",
+    )
+    monkeypatch.setattr(ai_client, "get_settings", lambda: settings)
+    monkeypatch.setattr(ai_client.httpx, "post", lambda *args, **kwargs: next(responses))
+
+    result = ai_client._parse_structured_response(prompt="Return JSON", text_format=Output)
+
+    assert result == Output(title="Training")
+
+
 def test_openrouter_tts_writes_wav(monkeypatch, tmp_path):
     captured = {}
 
@@ -126,3 +156,22 @@ def test_default_cors_allows_the_local_frontend_ports():
 
     assert "http://localhost:3000" in origins
     assert "http://localhost:3001" in origins
+
+
+def test_clear_notifications_only_targets_the_current_actor(monkeypatch):
+    captured = {}
+    actor = SimpleNamespace(organization_id="organization-id", user=SimpleNamespace(id="user-id"))
+    database = SimpleNamespace(commit=lambda: captured.setdefault("committed", True))
+
+    monkeypatch.setattr(
+        notification_routes,
+        "clear_notifications",
+        lambda db, **kwargs: captured.update(db=db, **kwargs) or 3,
+    )
+
+    response = notification_routes.delete_notifications(database, actor)
+
+    assert response.message == "Cleared 3 notification(s)."
+    assert captured["organization_id"] == "organization-id"
+    assert captured["user_id"] == "user-id"
+    assert captured["committed"]

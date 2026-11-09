@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 from typing import Any
 
 import httpx
@@ -98,18 +99,29 @@ def _parse_structured_response(
         },
         "provider": {"require_parameters": True},
     }
-    try:
-        response = httpx.post(
-            f"{settings.openrouter_base_url.rstrip('/')}/chat/completions",
-            headers=_openrouter_headers(),
-            json=payload,
-            timeout=180,
-        )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
-        return text_format.model_validate_json(content)
-    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
-        raise RuntimeError(f"OpenRouter structured generation failed. {exc}") from exc
+    last_error = "OpenRouter returned no response body."
+    for _ in range(2):
+        try:
+            response = httpx.post(
+                f"{settings.openrouter_base_url.rstrip('/')}/chat/completions",
+                headers=_openrouter_headers(),
+                json=payload,
+                timeout=180,
+            )
+            response.raise_for_status()
+            choice = response.json()["choices"][0]
+            message = choice.get("message") or {}
+            content = message.get("content") or message.get("parsed")
+            if isinstance(content, (dict, list)):
+                content = json.dumps(content)
+            if not isinstance(content, str) or not content.strip():
+                last_error = str(message.get("refusal") or choice.get("finish_reason") or last_error)
+                continue
+            return text_format.model_validate_json(content)
+        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+            last_error = str(exc)
+
+    raise RuntimeError(f"OpenRouter structured generation failed. {last_error}")
 
 
 def generate_assessment(

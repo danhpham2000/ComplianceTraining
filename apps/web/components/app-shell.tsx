@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { buttonVariants } from "@/components/ui/button";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -160,6 +161,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { actor, ready, signOut } = useAuth();
   const isPublicRoute = publicRoutes.has(pathname);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [clearNotificationsOpen, setClearNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -231,6 +233,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       }),
     onSuccess: () => notifications.refetch(),
   });
+  const clearAllNotifications = useMutation({
+    mutationFn: () => apiRequest<{ message: string }>("/notifications", { method: "DELETE" }),
+    onSuccess: async () => {
+      setClearNotificationsOpen(false);
+      setNotificationsOpen(false);
+      await notifications.refetch();
+    },
+  });
 
   if (isPublicRoute) {
     if (pathname === "/login") {
@@ -295,6 +305,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#fbfbfd] text-foreground">
+      <ConfirmationDialog
+        open={clearNotificationsOpen}
+        onOpenChange={setClearNotificationsOpen}
+        title="Clear all notifications?"
+        description="This permanently removes your notification history."
+        confirmLabel="Clear notifications"
+        isPending={clearAllNotifications.isPending}
+        onConfirm={() => clearAllNotifications.mutate()}
+      />
       <div className="flex min-h-screen flex-col md:grid md:grid-cols-[224px_minmax(0,1fr)]">
         <aside className="border-b border-border bg-white md:border-b-0 md:border-r">
           <div className="border-b border-border px-4 py-4">
@@ -383,13 +402,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                               {unreadCount ? `${unreadCount} unread` : "All caught up"}
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => markAllRead.mutate()}
-                            className="text-xs font-medium text-primary"
-                          >
-                            Mark all read
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => markAllRead.mutate()}
+                              disabled={markAllRead.isPending || !(notifications.data ?? []).length}
+                              className="text-xs font-medium text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Mark all read
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setClearNotificationsOpen(true)}
+                              disabled={!(notifications.data ?? []).length}
+                              className="text-xs font-medium text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Clear all
+                            </button>
+                          </div>
                         </div>
 
                         <div className="max-h-[420px] overflow-y-auto p-3">

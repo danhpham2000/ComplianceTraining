@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -72,6 +72,16 @@ def mark_notifications_read(db: Session, *, organization_id, user_id, notificati
     if updated:
         db.flush()
     return updated
+
+
+def clear_notifications(db: Session, *, organization_id, user_id) -> int:
+    result = db.execute(
+        delete(Notification).where(
+            Notification.organization_id == organization_id,
+            Notification.user_id == user_id,
+        )
+    )
+    return result.rowcount or 0
 
 
 def notify_assignment_recipients(

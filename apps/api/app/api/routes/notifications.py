@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from app.api.deps import CurrentActor, DBSession
 from app.schemas.admin import NotificationOut, NotificationReadIn
 from app.schemas.common import APIMessage
-from app.services.notifications import list_notifications, mark_notifications_read
+from app.services.notifications import clear_notifications, list_notifications, mark_notifications_read
 
 
 router = APIRouter(tags=["notifications"])
@@ -28,3 +28,14 @@ def read_notifications(payload: NotificationReadIn, db: DBSession, actor: Curren
     )
     db.commit()
     return APIMessage(message=f"Marked {updated} notification(s) as read.")
+
+
+@router.delete("/notifications", response_model=APIMessage)
+def delete_notifications(db: DBSession, actor: CurrentActor):
+    deleted = clear_notifications(
+        db,
+        organization_id=actor.organization_id,
+        user_id=actor.user.id,
+    )
+    db.commit()
+    return APIMessage(message=f"Cleared {deleted} notification(s).")
