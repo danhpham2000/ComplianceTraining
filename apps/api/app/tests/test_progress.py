@@ -118,6 +118,33 @@ def test_openrouter_retries_an_empty_structured_response(monkeypatch):
     assert result == Output(title="Training")
 
 
+def test_research_brief_requests_a_three_to_five_minute_spoken_script(monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(
+        ai_client,
+        "_parse_structured_response",
+        lambda **kwargs: captured.update(kwargs) or ai_client.AIResearchBrief(
+            summary="Opening summary",
+            description="Description",
+            learningObjectives=["One", "Two", "Three"],
+            sections=[],
+            references=[],
+        ),
+    )
+
+    ai_client.generate_research_brief(
+        title="Data security",
+        research_query="Data security for employees",
+        source_context="Source material",
+    )
+
+    prompt = captured["prompt"]
+    assert "Produce exactly 5 sections." in prompt
+    assert "55 to 70 spoken words" in prompt
+    assert "90 to 110 spoken words" in prompt
+
+
 def test_openrouter_tts_writes_wav(monkeypatch, tmp_path):
     captured = {}
 

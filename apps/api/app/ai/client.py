@@ -236,12 +236,13 @@ Research query: {research_query}
 Requirements:
 - Use only the source excerpts provided below.
 - Prioritize current guidance that is still relevant as of {current_label}.
-- Produce exactly 4 sections.
-- Keep the complete lesson suitable for a focused 3 to 5 minute training video.
+- Produce exactly 5 sections.
+- Keep the complete lesson suitable for a focused 3 to 5 minute training video (roughly 550 to 650 spoken words in total).
 - Write for the ear, not the page. Use smooth spoken transitions and natural sentence rhythm.
 - The opening summary must do two things:
   1. give the audience a reason to care
   2. introduce the realistic scenario lens employees will use during the lesson
+  3. contain 55 to 70 spoken words so the opening has enough context to stand alone
 - Each section narration should:
   - revolve around one realistic workplace situation
   - identify the employee context, the risk, the expected behavior, and the consequence of a poor choice
@@ -249,7 +250,7 @@ Requirements:
   - sound natural when spoken aloud
   - add useful context instead of reading bullet points verbatim
   - include a practical employee-facing scenario example
-  - stay below 90 words
+  - contain 90 to 110 spoken words; use the full range to explain the scenario clearly
 - Avoid generic presentation filler such as "today we are going to talk about" or "in this presentation".
 - Avoid marketing language, robotic phrasing, and dense academic prose.
 - Every section must cite one or more source URLs from the provided material.
