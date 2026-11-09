@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +32,12 @@ function RegisterPageContent() {
     }
     router.replace(getHomeRoute(actor.role));
   }, [actor, ready, router]);
+
+  useEffect(() => {
+    if (!searchParams.get("email")) {
+      router.replace("/login");
+    }
+  }, [router, searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,9 +71,9 @@ function RegisterPageContent() {
       >
       <Card className="w-full rounded-[2rem] border border-border/70 bg-white/92">
         <CardHeader className="space-y-3 p-8">
-          <CardTitle className="text-[1.85rem] tracking-[-0.04em]">Create account</CardTitle>
+          <CardTitle className="text-[1.85rem] tracking-[-0.04em]">Set up your invited account</CardTitle>
           <CardDescription className="text-sm leading-6">
-            Create your workspace account. Verification is required before access.
+            Finish account setup using the email address in your invitation.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-0">
@@ -88,6 +92,7 @@ function RegisterPageContent() {
               placeholder="name@company.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              readOnly
               required
             />
             <Input
@@ -105,17 +110,9 @@ function RegisterPageContent() {
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="submit" className="w-full" disabled={pending}>
-              {pending ? "Creating account..." : "Register"}
-              {!pending ? <ArrowRight className="size-4" /> : null}
+              {pending ? "Creating account..." : "Set up account"}
             </Button>
           </form>
-
-          <p className="mt-6 text-sm text-muted-foreground">
-            Already have access?{" "}
-            <Link href="/login" className="font-medium text-primary">
-              Log in
-            </Link>
-          </p>
         </CardContent>
       </Card>
       </motion.div>

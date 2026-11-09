@@ -132,6 +132,28 @@ def upsert_membership(db: DBSession, organization_id, user_id, role: str) -> Org
 def register(payload: RegisterRequest, db: DBSession):
     email = require_allowed_email(payload.email)
     existing = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    organization = get_or_create_default_org(db)
+    existing_membership = (
+        db.execute(
+            select(OrganizationMember).where(
+                OrganizationMember.organization_id == organization.id,
+                OrganizationMember.user_id == existing.id,
+            )
+        ).scalar_one_or_none()
+        if existing
+        else None
+    )
+    bootstrap_admin_email = settings.bootstrap_admin_email.strip().lower()
+    if not existing and email != bootstrap_admin_email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You need an administrator invitation before setting up an account.",
+        )
+    if existing and not existing_membership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You need an administrator invitation before setting up an account.",
+        )
     if existing and existing.email_verified:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account already exists for this email.")
 
@@ -157,14 +179,6 @@ def register(payload: RegisterRequest, db: DBSession):
         db.add(user)
         db.flush()
 
-    organization = get_or_create_default_org(db)
-    existing_membership = db.execute(
-        select(OrganizationMember).where(
-            OrganizationMember.organization_id == organization.id,
-            OrganizationMember.user_id == user.id,
-        )
-    ).scalar_one_or_none()
-    bootstrap_admin_email = settings.bootstrap_admin_email.strip().lower()
     if existing_membership:
         target_role = existing_membership.role
     elif email == bootstrap_admin_email:

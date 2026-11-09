@@ -14,21 +14,19 @@ Monorepo MVP for the AI-native compliance training platform described in the spe
   - Admin flows for training creation, review, publishing, assignments, and analytics
   - Employee flows for assigned training, watch-gate progress, quiz attempts, and results
 
-## Demo personas
+## Access
 
-- `admin@acme.test`
-- `owner@acme.test`
-- `manager@acme.test`
-- `employee@acme.test`
-
-The web app exposes a persona switcher in the header. The API also accepts the active persona through `X-User-Email`.
+The workspace is invite-only. `danhp@nextphase.ai` is the bootstrap administrator; administrators invite additional people from Settings.
 
 ## Run locally
 
 The root `.env` must contain:
 
 - `DATABASE_URL`
-- `OPENAI_API_KEY`
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_MODEL` (defaults to `openrouter/free`)
+
+OpenRouter generates the research brief, narration, slide content, and quiz. Lecture MP4s are rendered locally with Pillow and ffmpeg. `OPENAI_API_KEY` is optional and only needed for OpenAI text-to-speech or Sora cartoon clips.
 
 Start the API:
 

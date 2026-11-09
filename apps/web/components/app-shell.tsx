@@ -233,6 +233,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   });
 
   if (isPublicRoute) {
+    if (pathname === "/login") {
+      return <main>{children}</main>;
+    }
+
     if (pathname === "/") {
       return (
         <div className="min-h-screen px-4 py-5 md:px-6">
