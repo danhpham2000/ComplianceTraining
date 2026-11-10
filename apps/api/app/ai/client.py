@@ -89,7 +89,8 @@ def _parse_structured_response(
     payload: dict[str, Any] = {
         "model": _get_text_model(),
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 4096,
+        "max_completion_tokens": 4096,
+        "reasoning": {"enabled": False},
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -119,6 +120,10 @@ def _parse_structured_response(
                 last_error = str(message.get("refusal") or choice.get("finish_reason") or last_error)
                 continue
             return text_format.model_validate_json(content)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 401:
+                raise RuntimeError("OpenRouter rejected the API key. Update OPENROUTER_API_KEY in Railway.") from exc
+            last_error = str(exc)
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
             last_error = str(exc)
 
@@ -237,12 +242,12 @@ Requirements:
 - Use only the source excerpts provided below.
 - Prioritize current guidance that is still relevant as of {current_label}.
 - Produce exactly 5 sections.
-- Keep the complete lesson suitable for a focused 3 to 5 minute training video (roughly 550 to 650 spoken words in total).
+- Keep the complete lesson suitable for a focused 3 to 5 minute training video. Scenario examples are narrated separately by the renderer.
 - Write for the ear, not the page. Use smooth spoken transitions and natural sentence rhythm.
 - The opening summary must do two things:
   1. give the audience a reason to care
   2. introduce the realistic scenario lens employees will use during the lesson
-  3. contain 55 to 70 spoken words so the opening has enough context to stand alone
+  3. contain 45 to 55 spoken words so the opening has enough context to stand alone
 - Each section narration should:
   - revolve around one realistic workplace situation
   - identify the employee context, the risk, the expected behavior, and the consequence of a poor choice
@@ -250,7 +255,7 @@ Requirements:
   - sound natural when spoken aloud
   - add useful context instead of reading bullet points verbatim
   - include a practical employee-facing scenario example
-  - contain 90 to 110 spoken words; use the full range to explain the scenario clearly
+  - contain 55 to 65 spoken words; be specific without repeating the scenario example
 - Avoid generic presentation filler such as "today we are going to talk about" or "in this presentation".
 - Avoid marketing language, robotic phrasing, and dense academic prose.
 - Every section must cite one or more source URLs from the provided material.
@@ -265,7 +270,7 @@ Requirements:
   - one short, concrete workplace scenario or illustration with an employee, situation, and expected action
   - keep it specific and easy to visualize
   - write it so it can be shown on-screen inside the training video
-  - stay below 35 words
+  - contain 18 to 24 words
 - The scenario examples must not include real employee names, real secrets, passwords, customer data, or unverifiable company policy.
 - Use fictional names and generic business contexts.
 - Return exactly 3 concise learning objectives.

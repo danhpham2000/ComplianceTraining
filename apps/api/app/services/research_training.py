@@ -223,7 +223,8 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
         image_path = asset_dir / f"slide-{index:02d}.png"
         audio_path = asset_dir / f"audio-{index:02d}.wav"
         chunk_path = asset_dir / f"chunk-{index:02d}.mp4"
-        _synthesize_speech(slide["narration"], audio_path)
+        spoken_narration = _build_spoken_narration(slide, is_intro=index == 1)
+        _synthesize_speech(spoken_narration, audio_path)
         duration = max(4, round(_probe_duration(audio_path)))
         if index == 1:
             _render_lecture_intro_frame(
@@ -247,7 +248,7 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
             "\n".join(
                 [
                     slide["heading"],
-                    slide["narration"],
+                    spoken_narration,
                     f"Example: {slide['example'] or 'N/A'}",
                     f"Sources: {', '.join(slide['sourceUrls']) or 'N/A'}",
                 ]
@@ -256,7 +257,7 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
         segments.append(
             {
                 "title": slide["heading"],
-                "text": slide["narration"],
+                "text": spoken_narration,
                 "start": current_second,
                 "duration": duration,
                 "bullets": slide["bullets"],
@@ -298,6 +299,14 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
         "segments": segments,
         "transcript_text": "\n\n".join(transcript_parts),
     }
+
+
+def _build_spoken_narration(slide: dict, *, is_intro: bool) -> str:
+    narration = str(slide["narration"] or "").strip()
+    example = str(slide["example"] or "").strip()
+    if is_intro or not example:
+        return narration
+    return f"{narration} For example, {example}"
 
 
 def _render_lecture_intro_frame(

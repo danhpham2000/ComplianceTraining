@@ -86,7 +86,8 @@ def test_openrouter_structured_generation_uses_json_schema(monkeypatch):
 
     assert result == Output(title="Training")
     assert captured["url"] == "https://openrouter.example/api/v1/chat/completions"
-    assert captured["json"]["max_tokens"] == 4096
+    assert captured["json"]["max_completion_tokens"] == 4096
+    assert captured["json"]["reasoning"] == {"enabled": False}
     assert captured["json"]["response_format"]["type"] == "json_schema"
 
 
@@ -119,7 +120,30 @@ def test_openrouter_retries_an_empty_structured_response(monkeypatch):
     assert result == Output(title="Training")
 
 
-def test_research_brief_requests_a_three_to_five_minute_spoken_script(monkeypatch):
+def test_openrouter_reports_an_invalid_api_key(monkeypatch):
+    class Output(BaseModel):
+        title: str
+
+    class Response:
+        def raise_for_status(self):
+            request = ai_client.httpx.Request("POST", "https://openrouter.example/api/v1/chat/completions")
+            response = ai_client.httpx.Response(401, request=request)
+            raise ai_client.httpx.HTTPStatusError("Unauthorized", request=request, response=response)
+
+    settings = SimpleNamespace(
+        openrouter_api_key="invalid-key",
+        openrouter_base_url="https://openrouter.example/api/v1",
+        openrouter_model="test/model",
+        web_app_url="https://app.example",
+    )
+    monkeypatch.setattr(ai_client, "get_settings", lambda: settings)
+    monkeypatch.setattr(ai_client.httpx, "post", lambda *args, **kwargs: Response())
+
+    with pytest.raises(RuntimeError, match="rejected the API key"):
+        ai_client._parse_structured_response(prompt="Return JSON", text_format=Output)
+
+
+def test_research_brief_requests_a_compact_spoken_script(monkeypatch):
     captured = {}
 
     monkeypatch.setattr(
@@ -142,8 +166,18 @@ def test_research_brief_requests_a_three_to_five_minute_spoken_script(monkeypatc
 
     prompt = captured["prompt"]
     assert "Produce exactly 5 sections." in prompt
-    assert "55 to 70 spoken words" in prompt
-    assert "90 to 110 spoken words" in prompt
+    assert "45 to 55 spoken words" in prompt
+    assert "55 to 65 spoken words" in prompt
+    assert "18 to 24 words" in prompt
+
+
+def test_scenario_examples_are_narrated_after_the_intro():
+    slide = {"narration": "Pause before approving the request.", "example": "Sam verifies the request with the finance team."}
+
+    assert research_training._build_spoken_narration(slide, is_intro=True) == slide["narration"]
+    assert research_training._build_spoken_narration(slide, is_intro=False) == (
+        "Pause before approving the request. For example, Sam verifies the request with the finance team."
+    )
 
 
 def test_question_update_requires_one_correct_answer():
