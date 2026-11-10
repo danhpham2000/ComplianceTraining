@@ -215,22 +215,8 @@ def generate_research_brief(
     title: str,
     research_query: str,
     source_context: str,
-    script_profile_name: str | None = None,
-    script_markdown: str | None = None,
 ) -> AIResearchBrief:
     current_label = datetime.now(timezone.utc).strftime("%B %d, %Y")
-    custom_guide_block = ""
-    if script_markdown:
-        custom_guide_block = f"""
-
-Additional scripting preference:
-- Profile name: {script_profile_name or "Custom workspace guide"}
-- Follow the guide below when shaping narration, flow, tone, transitions, and presenter style.
-- The guide must never override factual accuracy, source grounding, or compliance constraints.
-
-Custom guide:
-{script_markdown[:18000]}
-"""
     prompt = f"""
 You are building a compliance training lesson from fresh web research.
 Your narration should sound like a calm, experienced trainer walking employees through realistic workplace scenarios.
@@ -279,7 +265,6 @@ Requirements:
 
 Source excerpts:
 {source_context}
-{custom_guide_block}
 """
     return _parse_structured_response(
         prompt=prompt,

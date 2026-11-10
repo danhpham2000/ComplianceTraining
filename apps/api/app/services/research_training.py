@@ -46,8 +46,6 @@ def build_research_training(
     title: str,
     research_query: str,
     question_count: int,
-    script_profile_name: str | None = None,
-    script_markdown: str | None = None,
 ) -> GeneratedTrainingPackage:
     results = _search_sources(research_query)
     source_context = _build_source_context(results)
@@ -55,8 +53,6 @@ def build_research_training(
         title=title,
         research_query=research_query,
         source_context=source_context,
-        script_profile_name=script_profile_name,
-        script_markdown=script_markdown,
     )
     render_result = _render_training_video(
         training_id=training_id,

@@ -92,8 +92,6 @@ def _run_research_training_build(
             title=course.title,
             research_query=research_query,
             question_count=question_count,
-            script_profile_name=organization.ai_script_profile_name,
-            script_markdown=organization.ai_script_markdown,
         )
 
         db.expire_all()

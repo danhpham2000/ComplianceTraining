@@ -61,13 +61,3 @@ class UserPreferencesOut(BaseModel):
 
 class UpdatePreferencesRequest(BaseModel):
     time_zone: str | None = Field(default=None, max_length=80)
-
-
-class WorkspacePreferencesOut(BaseModel):
-    ai_script_profile_name: str | None = None
-    ai_script_markdown: str | None = None
-
-
-class UpdateWorkspacePreferencesRequest(BaseModel):
-    ai_script_profile_name: str | None = Field(default=None, max_length=255)
-    ai_script_markdown: str | None = Field(default=None, max_length=40000)

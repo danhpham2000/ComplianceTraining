@@ -36,11 +36,6 @@ export type UserPreferences = {
   time_zone?: string | null;
 };
 
-export type WorkspacePreferences = {
-  ai_script_profile_name?: string | null;
-  ai_script_markdown?: string | null;
-};
-
 export type Notification = {
   id: string;
   type: string;

@@ -13,8 +13,6 @@ class Organization(UUIDTimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    ai_script_profile_name: Mapped[str | None] = mapped_column(String(255))
-    ai_script_markdown: Mapped[str | None] = mapped_column(Text)
 
 
 class User(UUIDTimestampMixin, Base):

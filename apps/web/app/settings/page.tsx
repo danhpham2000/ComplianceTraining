@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { FileText, Globe2, KeyRound, Sparkles, Trash2, Upload, UserPlus, Users2 } from "lucide-react";
+import { Globe2, KeyRound, Trash2, UserPlus, Users2 } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { usePersona } from "@/components/persona-provider";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,8 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/api";
-import { DirectoryUser, UserPreferences, WorkspacePreferences } from "@/lib/types";
+import { DirectoryUser, UserPreferences } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const roleOptions = ["OWNER", "ADMIN", "MANAGER", "EMPLOYEE"] as const;
@@ -23,7 +22,6 @@ const inviteRoleOptions = ["ADMIN", "MANAGER", "EMPLOYEE"] as const;
 const statusOptions = ["ACTIVE", "INACTIVE"] as const;
 const adminSettingsSections = [
   { id: "general", label: "General", icon: Globe2 },
-  { id: "personalize", label: "Personalize", icon: Sparkles },
   { id: "people", label: "People", icon: Users2 },
   { id: "security", label: "Security", icon: KeyRound },
 ] as const;
@@ -32,7 +30,7 @@ const employeeSettingsSections = [
   { id: "security", label: "Security", icon: KeyRound },
 ] as const;
 
-type SectionId = "general" | "personalize" | "people" | "security";
+type SectionId = "general" | "people" | "security";
 
 export default function SettingsPage() {
   const { actor, refresh } = useAuth();
@@ -48,21 +46,9 @@ export default function SettingsPage() {
     queryKey: ["preferences", persona.email],
     queryFn: () => apiRequest<UserPreferences>("/auth/preferences"),
   });
-  const workspacePreferences = useQuery({
-    queryKey: ["workspace-preferences", persona.email],
-    queryFn: () => apiRequest<WorkspacePreferences>("/auth/workspace-preferences"),
-    enabled: persona.role !== "EMPLOYEE",
-  });
-
   const members = useMemo(() => directory.data ?? [], [directory.data]);
-  const scriptFileInputRef = useRef<HTMLInputElement | null>(null);
   const [timeZoneDraft, setTimeZoneDraft] = useState("");
   const [timeZoneMessage, setTimeZoneMessage] = useState<string | null>(null);
-  const [scriptProfileName, setScriptProfileName] = useState("");
-  const [scriptMarkdown, setScriptMarkdown] = useState("");
-  const [scriptTouched, setScriptTouched] = useState(false);
-  const [scriptMessage, setScriptMessage] = useState<string | null>(null);
-  const [scriptUploadMessage, setScriptUploadMessage] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -144,30 +130,7 @@ export default function SettingsPage() {
       await directory.refetch();
     },
   });
-  const updateWorkspacePreferences = useMutation({
-    mutationFn: () =>
-      apiRequest<WorkspacePreferences>("/auth/workspace-preferences", {
-        method: "PATCH",
-        body: {
-          ai_script_profile_name: visibleScriptProfileName.trim() || null,
-          ai_script_markdown: visibleScriptMarkdown.trim() || null,
-        },
-      }),
-    onSuccess: async (data) => {
-      setScriptProfileName(data.ai_script_profile_name ?? "");
-      setScriptMarkdown(data.ai_script_markdown ?? "");
-      setScriptTouched(false);
-      setScriptMessage("AI scripting preference saved.");
-      await workspacePreferences.refetch();
-    },
-  });
   const effectiveTimeZone = timeZoneDraft || preferences.data?.time_zone || actor?.time_zone || browserTimeZone;
-  const savedScriptProfileName = workspacePreferences.data?.ai_script_profile_name ?? "";
-  const savedScriptMarkdown = workspacePreferences.data?.ai_script_markdown ?? "";
-  const visibleScriptProfileName = scriptTouched ? scriptProfileName : savedScriptProfileName;
-  const visibleScriptMarkdown = scriptTouched ? scriptMarkdown : savedScriptMarkdown;
-  const scriptDirty =
-    scriptTouched && (visibleScriptProfileName !== savedScriptProfileName || visibleScriptMarkdown !== savedScriptMarkdown);
 
   return (
     <motion.div
@@ -256,155 +219,6 @@ export default function SettingsPage() {
                     </div>
                     {timeZoneMessage ? <p className="text-sm text-[#58725d]">{timeZoneMessage}</p> : null}
                     {updateTimeZone.error ? <p className="text-sm text-destructive">{updateTimeZone.error.message}</p> : null}
-                  </CardContent>
-                </Card>
-              </>
-            ) : null}
-
-            {section === "personalize" && persona.role !== "EMPLOYEE" ? (
-              <>
-                <div>
-                  <h1 className="text-[2rem] font-semibold tracking-[-0.05em] text-foreground">Personalize</h1>
-                  <p className="mt-2 text-sm text-[#6f819c]">
-                    Configure how AI writes training scripts for this workspace.
-                  </p>
-                </div>
-
-                <Card className="rounded-[1.5rem] border-border/80 shadow-none">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-base">AI scripting preference</CardTitle>
-                    <CardDescription>
-                      Save a Markdown guide or presenter profile. Future training generation will use it for tone, flow, transitions, and lecture style.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-                      <div className="space-y-4">
-                        <Field label="Profile name">
-                          <Input
-                            className="h-11"
-                            value={visibleScriptProfileName}
-                            onChange={(event) => {
-                              if (!scriptTouched) {
-                                setScriptMarkdown(savedScriptMarkdown);
-                                setScriptTouched(true);
-                              }
-                              setScriptMessage(null);
-                              setScriptProfileName(event.target.value);
-                            }}
-                            placeholder="Smooth professor voice"
-                          />
-                        </Field>
-                        <Field label="Markdown guide">
-                          <Textarea
-                            className="min-h-[22rem]"
-                            value={visibleScriptMarkdown}
-                            onChange={(event) => {
-                              if (!scriptTouched) {
-                                setScriptProfileName(savedScriptProfileName);
-                                setScriptTouched(true);
-                              }
-                              setScriptMessage(null);
-                              setScriptUploadMessage(null);
-                              setScriptMarkdown(event.target.value);
-                            }}
-                            placeholder={"Paste a presenter guide, script style, pacing notes, or slide narration rules here."}
-                          />
-                        </Field>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="rounded-[1.2rem] border border-border bg-[#fcfcfe] p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="inline-flex size-10 items-center justify-center rounded-2xl bg-[#fff2e4] text-primary">
-                              <FileText className="size-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-foreground">Upload `.md` guide</p>
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                Import a local `SCRIPT.md`, presenter skill, or narration guideline and use it as the active scripting profile.
-                              </p>
-                            </div>
-                          </div>
-                          <input
-                            ref={scriptFileInputRef}
-                            type="file"
-                            accept=".md,.markdown,.txt,text/markdown,text/plain"
-                            className="hidden"
-                            onChange={async (event) => {
-                              const file = event.target.files?.[0];
-                              if (!file) {
-                                return;
-                              }
-                              try {
-                                const text = await file.text();
-                                setScriptTouched(true);
-                                setScriptMarkdown(text);
-                                if (!visibleScriptProfileName.trim()) {
-                                  setScriptProfileName(file.name.replace(/\.(md|markdown|txt)$/i, ""));
-                                }
-                                setScriptUploadMessage(`${file.name} loaded into the guide editor.`);
-                                setScriptMessage(null);
-                              } catch {
-                                setScriptUploadMessage("Could not read that file.");
-                              } finally {
-                                event.target.value = "";
-                              }
-                            }}
-                          />
-                          <div className="mt-4 flex flex-wrap gap-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="h-10 px-4"
-                              onClick={() => scriptFileInputRef.current?.click()}
-                            >
-                              <Upload className="size-4" />
-                              Upload Markdown
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="h-10 px-4"
-                              onClick={() => {
-                                setScriptTouched(true);
-                                setScriptProfileName("");
-                                setScriptMarkdown("");
-                                setScriptMessage(null);
-                                setScriptUploadMessage(null);
-                              }}
-                            >
-                              Clear draft
-                            </Button>
-                          </div>
-                          {scriptUploadMessage ? <p className="mt-3 text-sm text-[#58725d]">{scriptUploadMessage}</p> : null}
-                        </div>
-
-                        <div className="rounded-[1.2rem] border border-border bg-[#fcfcfe] p-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7b5c]">How it is used</p>
-                          <div className="mt-3 space-y-3 text-sm leading-6 text-muted-foreground">
-                            <p>The guide is applied during research-to-script generation.</p>
-                            <p>It influences narration style, pacing, transitions, and presenter tone.</p>
-                            <p>Facts still stay grounded in the crawled sources and cannot be overridden by the guide.</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 pt-1">
-                      <Button
-                        type="button"
-                        className="h-10 min-w-[132px] px-6"
-                        disabled={updateWorkspacePreferences.isPending || !scriptDirty}
-                        onClick={() => updateWorkspacePreferences.mutate()}
-                      >
-                        {updateWorkspacePreferences.isPending ? <Spinner className="size-4" /> : null}
-                        {updateWorkspacePreferences.isPending ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-
-                    {scriptMessage ? <p className="text-sm text-[#58725d]">{scriptMessage}</p> : null}
-                    {updateWorkspacePreferences.error ? <p className="text-sm text-destructive">{updateWorkspacePreferences.error.message}</p> : null}
                   </CardContent>
                 </Card>
               </>

@@ -17,11 +17,9 @@ from app.schemas.auth import (
     ResendVerificationRequest,
     SessionOut,
     UpdatePreferencesRequest,
-    UpdateWorkspacePreferencesRequest,
     UpdateDirectoryUserRequest,
     UserPreferencesOut,
     VerifyEmailRequest,
-    WorkspacePreferencesOut,
 )
 from app.schemas.common import APIMessage, ActorSummary, DirectoryUserOut, OrganizationSummary
 from app.services.auth import Actor
@@ -418,39 +416,6 @@ def update_preferences(payload: UpdatePreferencesRequest, actor: CurrentActor, d
     actor.user.time_zone = time_zone or None
     db.commit()
     return UserPreferencesOut(time_zone=actor.user.time_zone)
-
-
-@router.get("/workspace-preferences", response_model=WorkspacePreferencesOut)
-def workspace_preferences(actor: CurrentActor, db: DBSession):
-    if actor.role not in {"OWNER", "ADMIN", "MANAGER"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Workspace admin access required.")
-    organization = db.execute(
-        select(Organization).where(Organization.id == actor.organization_id)
-    ).scalar_one()
-    return WorkspacePreferencesOut(
-        ai_script_profile_name=organization.ai_script_profile_name,
-        ai_script_markdown=organization.ai_script_markdown,
-    )
-
-
-@router.patch("/workspace-preferences", response_model=WorkspacePreferencesOut)
-def update_workspace_preferences(payload: UpdateWorkspacePreferencesRequest, actor: CurrentActor, db: DBSession):
-    if actor.role not in {"OWNER", "ADMIN", "MANAGER"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Workspace admin access required.")
-    organization = db.execute(
-        select(Organization).where(Organization.id == actor.organization_id)
-    ).scalar_one()
-
-    profile_name = payload.ai_script_profile_name.strip() if payload.ai_script_profile_name else None
-    script_markdown = payload.ai_script_markdown.strip() if payload.ai_script_markdown else None
-
-    organization.ai_script_profile_name = profile_name or None
-    organization.ai_script_markdown = script_markdown or None
-    db.commit()
-    return WorkspacePreferencesOut(
-        ai_script_profile_name=organization.ai_script_profile_name,
-        ai_script_markdown=organization.ai_script_markdown,
-    )
 
 
 @router.patch("/directory/{user_id}", response_model=DirectoryUserOut)
