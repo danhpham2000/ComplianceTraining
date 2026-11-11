@@ -86,7 +86,8 @@ def _parse_structured_response(
     text_format: type[BaseModel],
 ) -> BaseModel:
     settings = get_settings()
-    payload: dict[str, Any] = {
+    schema = text_format.model_json_schema()
+    structured_payload: dict[str, Any] = {
         "model": _get_text_model(),
         "messages": [{"role": "user", "content": prompt}],
         "max_completion_tokens": 4096,
@@ -96,13 +97,30 @@ def _parse_structured_response(
             "json_schema": {
                 "name": text_format.__name__,
                 "strict": True,
-                "schema": text_format.model_json_schema(),
+                "schema": schema,
             },
         },
         "provider": {"require_parameters": True},
     }
+    json_prompt = (
+        f"{prompt}\n\nReturn only a JSON object that validates against this JSON Schema:\n"
+        f"{json.dumps(schema)}"
+    )
+    fallback_payloads = [
+        {
+            "model": _get_text_model(),
+            "messages": [{"role": "user", "content": json_prompt}],
+            "max_completion_tokens": 4096,
+            "response_format": {"type": "json_object"},
+        },
+        {
+            "model": _get_text_model(),
+            "messages": [{"role": "user", "content": json_prompt}],
+            "max_completion_tokens": 4096,
+        },
+    ]
     last_error = "OpenRouter returned no response body."
-    for _ in range(2):
+    for payload in [structured_payload, *fallback_payloads]:
         try:
             response = httpx.post(
                 f"{settings.openrouter_base_url.rstrip('/')}/chat/completions",
@@ -119,15 +137,25 @@ def _parse_structured_response(
             if not isinstance(content, str) or not content.strip():
                 last_error = str(message.get("refusal") or choice.get("finish_reason") or last_error)
                 continue
-            return text_format.model_validate_json(content)
+            return text_format.model_validate_json(_strip_json_fence(content))
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 401:
                 raise RuntimeError("OpenRouter rejected the API key. Update OPENROUTER_API_KEY in Railway.") from exc
-            last_error = str(exc)
+            last_error = exc.response.text[:500].strip() or str(exc)
         except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
             last_error = str(exc)
 
     raise RuntimeError(f"OpenRouter structured generation failed. {last_error}")
+
+
+def _strip_json_fence(content: str) -> str:
+    stripped = content.strip()
+    if not stripped.startswith("```"):
+        return stripped
+    lines = stripped.splitlines()
+    if len(lines) >= 2 and lines[-1].strip() == "```":
+        return "\n".join(lines[1:-1]).strip()
+    return stripped
 
 
 def generate_assessment(

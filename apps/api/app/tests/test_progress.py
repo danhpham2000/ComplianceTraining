@@ -120,6 +120,47 @@ def test_openrouter_retries_an_empty_structured_response(monkeypatch):
     assert result == Output(title="Training")
 
 
+def test_openrouter_falls_back_when_strict_schema_is_unsupported(monkeypatch):
+    class Output(BaseModel):
+        title: str
+
+    captured_payloads = []
+
+    class RejectedResponse:
+        def raise_for_status(self):
+            request = ai_client.httpx.Request("POST", "https://openrouter.example/api/v1/chat/completions")
+            response = ai_client.httpx.Response(400, request=request, text='{"error":"Unsupported response_format"}')
+            raise ai_client.httpx.HTTPStatusError("Bad Request", request=request, response=response)
+
+    class SuccessResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": '```json\n{"title":"Training"}\n```'}}]}
+
+    responses = iter([RejectedResponse(), SuccessResponse()])
+    settings = SimpleNamespace(
+        openrouter_api_key="test-key",
+        openrouter_base_url="https://openrouter.example/api/v1",
+        openrouter_model="openrouter/free",
+        web_app_url="https://app.example",
+    )
+    monkeypatch.setattr(ai_client, "get_settings", lambda: settings)
+    monkeypatch.setattr(
+        ai_client.httpx,
+        "post",
+        lambda *args, **kwargs: captured_payloads.append(kwargs["json"]) or next(responses),
+    )
+
+    result = ai_client._parse_structured_response(prompt="Return JSON", text_format=Output)
+
+    assert result == Output(title="Training")
+    assert captured_payloads[0]["response_format"]["type"] == "json_schema"
+    assert captured_payloads[1]["response_format"] == {"type": "json_object"}
+    assert "provider" not in captured_payloads[1]
+
+
 def test_openrouter_reports_an_invalid_api_key(monkeypatch):
     class Output(BaseModel):
         title: str
