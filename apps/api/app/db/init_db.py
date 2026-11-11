@@ -7,6 +7,7 @@ from app.models import Base
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_auth_columns()
+    remove_unused_organization_columns()
 
 
 def ensure_auth_columns() -> None:
@@ -31,3 +32,11 @@ def ensure_auth_columns() -> None:
     with engine.begin() as connection:
         for statement in statements:
             connection.execute(text(statement))
+
+
+def remove_unused_organization_columns() -> None:
+    columns = {column["name"] for column in inspect(engine).get_columns("organizations")}
+    with engine.begin() as connection:
+        for column_name in ("ai_script_profile_name", "ai_script_markdown"):
+            if column_name in columns:
+                connection.execute(text(f"ALTER TABLE organizations DROP COLUMN {column_name}"))
