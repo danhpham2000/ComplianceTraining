@@ -180,6 +180,31 @@ def test_scenario_examples_are_narrated_after_the_intro():
     )
 
 
+def test_outro_narration_closes_with_learning_objectives():
+    narration = research_training._build_outro_narration(
+        ["Spot the cue", "Verify independently", "Report fast"]
+    )
+
+    assert narration.startswith("Before you act")
+    assert "Spot the cue; Verify independently; Report fast" in narration
+
+
+def test_slide_text_is_bounded_to_its_card():
+    action = "Verify urgent payment requests through a separate, trusted channel before approving or sharing any information."
+
+    font, lines = research_training._fit_slide_text(
+        action,
+        max_width=252,
+        max_lines=5,
+        font_sizes=(25, 23, 21),
+        bold=True,
+        max_chars=115,
+    )
+
+    assert len(lines) <= 5
+    assert all(research_training._wrap_text(line, font, 252) == [line] for line in lines)
+
+
 def test_question_update_requires_one_correct_answer():
     with pytest.raises(ValueError, match="Exactly one answer"):
         UpdateQuestionIn.model_validate(

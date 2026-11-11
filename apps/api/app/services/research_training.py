@@ -191,6 +191,7 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
 
     slides = [
         {
+            "layout": "intro",
             "heading": title,
             "narration": brief.summary,
             "bullets": brief.learningObjectives[:3],
@@ -199,6 +200,7 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
         },
         *[
             {
+                "layout": "scenario",
                 "heading": section.heading,
                 "narration": section.narration,
                 "bullets": section.bullets,
@@ -207,6 +209,14 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
             }
             for section in brief.sections
         ],
+        {
+            "layout": "summary",
+            "heading": "When in doubt, pause and verify.",
+            "narration": _build_outro_narration(brief.learningObjectives),
+            "bullets": brief.learningObjectives[:3],
+            "example": "",
+            "sourceUrls": [item.url for item in brief.references[:3]],
+        },
     ]
 
     segments: list[dict] = []
@@ -222,10 +232,17 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
         spoken_narration = _build_spoken_narration(slide, is_intro=index == 1)
         _synthesize_speech(spoken_narration, audio_path)
         duration = max(4, round(_probe_duration(audio_path)))
-        if index == 1:
+        if slide["layout"] == "intro":
             _render_lecture_intro_frame(
                 image_path=image_path,
                 training_title=title,
+                summary=slide["narration"],
+                bullets=slide["bullets"],
+            )
+        elif slide["layout"] == "summary":
+            _render_lecture_outro_frame(
+                image_path=image_path,
+                heading=slide["heading"],
                 summary=slide["narration"],
                 bullets=slide["bullets"],
             )
@@ -304,6 +321,11 @@ def _build_spoken_narration(slide: dict, *, is_intro: bool) -> str:
     return f"{narration} For example, {example}"
 
 
+def _build_outro_narration(learning_objectives: list[str]) -> str:
+    actions = "; ".join(learning_objectives[:3]) or "Pause and use a trusted channel before acting."
+    return f"Before you act, take a moment to verify the request through a trusted channel. Remember to {actions}."
+
+
 def _render_lecture_intro_frame(
     *,
     image_path: Path,
@@ -320,9 +342,14 @@ def _render_lecture_intro_frame(
 
     eyebrow_font = _load_font(16, bold=True)
     heading_font = _select_heading_font(training_title, max_width=800, large=68, medium=61, small=54)
-    summary_font = _load_font(27)
+    summary_font, summary_lines = _fit_slide_text(
+        summary,
+        max_width=770,
+        max_lines=3,
+        font_sizes=(27, 25, 23),
+        max_chars=180,
+    )
     step_label_font = _load_font(15, bold=True)
-    step_font = _load_font(23, bold=True)
 
     draw.text((82, 76), "NEXT PHASE TRAINING", fill=PRIMARY, font=eyebrow_font)
     draw.text((1090, 76), "INTRODUCTION", fill="#847c73", font=eyebrow_font)
@@ -341,29 +368,37 @@ def _render_lecture_intro_frame(
         draw=draw,
         x=82,
         y=summary_top,
-        lines=_wrap_text(_format_slide_bullet(summary, max_chars=180), summary_font, 770)[:3],
+        lines=summary_lines,
         font=summary_font,
         fill="#6d6a65",
         line_height=38,
     )
 
     focus_items = bullets[:3] or ["Follow secure data habits."]
-    card_y = 530
+    card_y = 510
     for index, bullet in enumerate(focus_items[:3]):
         card_x = 82 + index * 270
         draw.line((card_x, card_y, card_x + 224, card_y), fill=INK, width=2)
         draw.text((card_x, card_y + 18), f"0{index + 1}", fill=PRIMARY, font=step_label_font)
+        focus_font, focus_lines = _fit_slide_text(
+            bullet,
+            max_width=224,
+            max_lines=2,
+            font_sizes=(23, 21, 19),
+            bold=True,
+            max_chars=38,
+        )
         _draw_wrapped_text(
             draw=draw,
             x=card_x,
             y=card_y + 46,
-            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=38), step_font, 224)[:2],
-            font=step_font,
+            lines=focus_lines,
+            font=focus_font,
             fill=INK,
-            line_height=27,
+            line_height=25,
         )
 
-    _paste_logo_bottom_right(image, x=956, y=606)
+    _paste_logo_bottom_right(image, x=956, y=578)
     image.save(image_path)
 
 
@@ -384,13 +419,8 @@ def _render_lecture_frame(
     eyebrow_font = _load_font(16, bold=True)
     heading_font = _select_heading_font(heading, max_width=820, large=64, medium=58, small=52)
     section_font = _load_font(16, bold=True)
-    scenario_font = _load_font(27)
-    cue_font = _load_font(21, bold=True)
-    action_font = _load_font(27, bold=True)
-    takeaway_font = _load_font(21, bold=True)
 
     draw.text((82, 76), "SCENARIO", fill=PRIMARY, font=eyebrow_font)
-    draw.text((1088, 76), "NEXT PHASE", fill="#847c73", font=eyebrow_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
@@ -401,61 +431,162 @@ def _render_lecture_frame(
         line_height=68,
     )
 
-    scene_top = max(286, heading_bottom + 32)
+    scene_top = max(286, heading_bottom + 28)
     callout_text = example.strip() or (bullets[0] if bullets else training_title)
     draw.text((82, scene_top - 26), "WORKPLACE SCENARIO", fill="#847c73", font=section_font)
+    scenario_font, scenario_lines = _fit_slide_text(
+        callout_text,
+        max_width=650,
+        max_lines=3,
+        font_sizes=(27, 25, 23),
+        max_chars=165,
+    )
     _draw_wrapped_text(
         draw=draw,
         x=82,
         y=scene_top + 8,
-        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=165), scenario_font, 650)[:4],
+        lines=scenario_lines,
         font=scenario_font,
         fill="#353231",
-        line_height=37,
+        line_height=33,
     )
 
-    action_top = max(244, scene_top - 12)
-    draw.rectangle((836, action_top, 1170, 522), fill=INK)
+    action_top = 246
+    action_bottom = 514
+    draw.rounded_rectangle((836, action_top, 1170, action_bottom), radius=22, fill=INK)
     draw.text((872, action_top + 38), "RECOMMENDED ACTION", fill="#ffbd7b", font=section_font)
+    action_font, action_lines = _fit_slide_text(
+        bullets[0] if bullets else callout_text,
+        max_width=252,
+        max_lines=5,
+        font_sizes=(25, 23, 21),
+        bold=True,
+        max_chars=115,
+    )
     _draw_wrapped_text(
         draw=draw,
         x=872,
         y=action_top + 94,
-        lines=_wrap_text(_format_slide_bullet(bullets[0] if bullets else callout_text, max_chars=115), action_font, 252)[:6],
+        lines=action_lines,
         font=action_font,
         fill="#ffffff",
-        line_height=35,
+        line_height=29,
     )
 
-    cues_top = 472
+    cues_top = 440
     draw.line((82, cues_top, 742, cues_top), fill=INK, width=2)
     draw.text((82, cues_top + 20), "DECISION CUES", fill="#847c73", font=section_font)
     for index, bullet in enumerate((bullets[:3] or ["Apply the recommended compliance habit."])[:3]):
         cue_x = 82 + index * 220
         draw.text((cue_x, cues_top + 54), f"0{index + 1}", fill=PRIMARY, font=section_font)
+        cue_font, cue_lines = _fit_slide_text(
+            bullet,
+            max_width=190,
+            max_lines=2,
+            font_sizes=(20, 18),
+            bold=True,
+            max_chars=30,
+        )
         _draw_wrapped_text(
             draw=draw,
             x=cue_x,
             y=cues_top + 78,
-            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=30), cue_font, 190)[:2],
+            lines=cue_lines,
             font=cue_font,
             fill=INK,
-            line_height=25,
+            line_height=23,
         )
 
-    takeaway_top = 610
+    takeaway_top = 562
     draw.line((82, takeaway_top, 824, takeaway_top), fill="#ded6ca", width=1)
     draw.text((82, takeaway_top + 18), "TAKEAWAY", fill=PRIMARY, font=section_font)
+    takeaway_font, takeaway_lines = _fit_slide_text(
+        bullets[-1] if bullets else heading,
+        max_width=580,
+        max_lines=1,
+        font_sizes=(19, 17),
+        bold=True,
+        max_chars=64,
+    )
     _draw_wrapped_text(
         draw=draw,
         x=212,
         y=takeaway_top + 16,
-        lines=_wrap_text(_format_slide_bullet(bullets[-1] if bullets else heading, max_chars=64), takeaway_font, 580)[:2],
+        lines=takeaway_lines,
         font=takeaway_font,
         fill=INK,
-        line_height=24,
+        line_height=22,
     )
-    _paste_logo_bottom_right(image, x=956, y=606)
+    _paste_logo_bottom_right(image, x=956, y=570)
+    image.save(image_path)
+
+
+def _render_lecture_outro_frame(
+    *,
+    image_path: Path,
+    heading: str,
+    summary: str,
+    bullets: list[str],
+) -> None:
+    image = Image.new("RGB", VIDEO_SIZE, "#f8f5ef")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, 10, 720), fill=PRIMARY)
+    draw.rounded_rectangle((28, 28, 1252, 692), radius=30, outline="#ded6ca", width=2)
+    draw.ellipse((1025, -110, 1430, 260), fill="#ffe1bb")
+
+    eyebrow_font = _load_font(16, bold=True)
+    heading_font = _select_heading_font(heading, max_width=780, large=68, medium=61, small=54)
+    summary_font, summary_lines = _fit_slide_text(
+        summary,
+        max_width=720,
+        max_lines=2,
+        font_sizes=(25, 23, 21),
+        max_chars=150,
+    )
+    draw.text((82, 76), "SUMMARY", fill=PRIMARY, font=eyebrow_font)
+    heading_bottom = _draw_wrapped_text(
+        draw=draw,
+        x=82,
+        y=126,
+        lines=_wrap_text(heading, heading_font, 780)[:2],
+        font=heading_font,
+        fill=INK,
+        line_height=72,
+    )
+    _draw_wrapped_text(
+        draw=draw,
+        x=82,
+        y=max(306, heading_bottom + 24),
+        lines=summary_lines,
+        font=summary_font,
+        fill="#6d6a65",
+        line_height=34,
+    )
+
+    objective_y = 530
+    for index, objective in enumerate((bullets[:3] or ["Pause and verify before acting."])[:3]):
+        objective_x = 82 + index * 300
+        draw.line((objective_x, objective_y, objective_x + 270, objective_y), fill=INK, width=2)
+        draw.text((objective_x, objective_y + 18), f"0{index + 1}", fill=PRIMARY, font=eyebrow_font)
+        objective_font, objective_lines = _fit_slide_text(
+            objective,
+            max_width=270,
+            max_lines=2,
+            font_sizes=(20, 18),
+            bold=True,
+            max_chars=48,
+        )
+        _draw_wrapped_text(
+            draw=draw,
+            x=objective_x,
+            y=objective_y + 44,
+            lines=objective_lines,
+            font=objective_font,
+            fill=INK,
+            line_height=24,
+        )
+
+    _paste_logo_bottom_right(image, x=956, y=578)
     image.save(image_path)
 
 
@@ -525,6 +656,33 @@ def _format_slide_bullet(text: str, *, max_chars: int) -> str:
             return candidate
 
     return shorten(compact, width=max_chars, placeholder="...")
+
+
+def _fit_slide_text(
+    text: str,
+    *,
+    max_width: int,
+    max_lines: int,
+    font_sizes: tuple[int, ...],
+    max_chars: int,
+    bold: bool = False,
+) -> tuple[ImageFont.ImageFont, list[str]]:
+    """Return text that fits a fixed slide area without crossing its bounds."""
+    compact = " ".join(text.strip().split())
+    for size in font_sizes:
+        font = _load_font(size, bold=bold)
+        lines = _wrap_text(compact, font, max_width)
+        if len(lines) <= max_lines:
+            return font, lines
+
+    font = _load_font(font_sizes[-1], bold=bold)
+    for limit in range(min(len(compact), max_chars), 0, -1):
+        candidate = _format_slide_bullet(compact, max_chars=limit)
+        lines = _wrap_text(candidate, font, max_width)
+        if len(lines) <= max_lines:
+            return font, lines
+
+    return font, [shorten(compact, width=max_chars, placeholder="...")]
 
 
 def _wrap_text(text: str, font: ImageFont.ImageFont, max_width: int) -> list[str]:
