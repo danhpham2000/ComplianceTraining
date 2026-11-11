@@ -110,13 +110,16 @@ def _parse_structured_response(
         {
             "model": _get_text_model(),
             "messages": [{"role": "user", "content": json_prompt}],
-            "max_completion_tokens": 4096,
+            "max_completion_tokens": 8192,
+            "reasoning": {"enabled": False},
             "response_format": {"type": "json_object"},
+            "provider": {"require_parameters": True},
         },
         {
             "model": _get_text_model(),
             "messages": [{"role": "user", "content": json_prompt}],
-            "max_completion_tokens": 4096,
+            "max_completion_tokens": 8192,
+            "reasoning": {"enabled": False},
         },
     ]
     last_error = "OpenRouter returned no response body."

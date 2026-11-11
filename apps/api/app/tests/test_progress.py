@@ -158,7 +158,42 @@ def test_openrouter_falls_back_when_strict_schema_is_unsupported(monkeypatch):
     assert result == Output(title="Training")
     assert captured_payloads[0]["response_format"]["type"] == "json_schema"
     assert captured_payloads[1]["response_format"] == {"type": "json_object"}
-    assert "provider" not in captured_payloads[1]
+    assert captured_payloads[1]["provider"] == {"require_parameters": True}
+    assert captured_payloads[1]["reasoning"] == {"enabled": False}
+    assert captured_payloads[1]["max_completion_tokens"] == 8192
+
+
+def test_openrouter_retries_when_a_free_model_stops_at_length(monkeypatch):
+    class Output(BaseModel):
+        title: str
+
+    class LengthResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"finish_reason": "length", "message": {}}]}
+
+    class SuccessResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": '{"title":"Training"}'}}]}
+
+    responses = iter([LengthResponse(), LengthResponse(), SuccessResponse()])
+    settings = SimpleNamespace(
+        openrouter_api_key="test-key",
+        openrouter_base_url="https://openrouter.example/api/v1",
+        openrouter_model="openrouter/free",
+        web_app_url="https://app.example",
+    )
+    monkeypatch.setattr(ai_client, "get_settings", lambda: settings)
+    monkeypatch.setattr(ai_client.httpx, "post", lambda *args, **kwargs: next(responses))
+
+    result = ai_client._parse_structured_response(prompt="Return JSON", text_format=Output)
+
+    assert result == Output(title="Training")
 
 
 def test_openrouter_reports_an_invalid_api_key(monkeypatch):
