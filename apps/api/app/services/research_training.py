@@ -236,7 +236,6 @@ def _render_training_video(*, training_id: str, title: str, brief) -> dict:
                 heading=slide["heading"],
                 bullets=slide["bullets"],
                 example=slide["example"],
-                source_urls=slide["sourceUrls"],
             )
         _render_video_chunk(image_path=image_path, audio_path=audio_path, output_path=chunk_path)
         concat_lines.append(f"file '{chunk_path.name}'")
@@ -312,70 +311,59 @@ def _render_lecture_intro_frame(
     summary: str,
     bullets: list[str],
 ) -> None:
-    image = Image.new("RGB", VIDEO_SIZE, "#fffaf4")
+    image = Image.new("RGB", VIDEO_SIZE, "#f8f5ef")
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((34, 34, 1246, 686), radius=42, fill="#fffdf9", outline=BORDER, width=2)
-    draw.ellipse((978, -92, 1360, 248), fill="#ffe0bd")
-    draw.ellipse((-132, 526, 228, 850), fill="#fff0df")
-    draw.rounded_rectangle((82, 74, 308, 118), radius=22, fill=PRIMARY_SOFT)
+    draw.rectangle((0, 0, 10, 720), fill=PRIMARY)
+    draw.rounded_rectangle((28, 28, 1252, 692), radius=30, outline="#ded6ca", width=2)
+    draw.ellipse((1025, -110, 1430, 260), fill="#ffe1bb")
+    draw.ellipse((-160, 572, 184, 870), fill="#fff0df")
 
-    badge_font = _load_font(18, bold=True)
-    heading_font = _select_heading_font(training_title, max_width=730, large=58, medium=52, small=46)
-    summary_font = _load_font(25)
-    summary_label_font = _load_font(20, bold=True)
-    focus_label_font = _load_font(15, bold=True)
-    focus_font = _load_font(19, bold=True)
+    eyebrow_font = _load_font(16, bold=True)
+    heading_font = _select_heading_font(training_title, max_width=800, large=68, medium=61, small=54)
+    summary_font = _load_font(27)
+    step_label_font = _load_font(15, bold=True)
     step_font = _load_font(23, bold=True)
 
-    draw.text((108, 87), "SCENARIO TRAINING", fill=PRIMARY, font=badge_font)
+    draw.text((82, 76), "NEXT PHASE TRAINING", fill=PRIMARY, font=eyebrow_font)
+    draw.text((1090, 76), "INTRODUCTION", fill="#847c73", font=eyebrow_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
-        y=148,
-        lines=_wrap_text(training_title, heading_font, 730)[:2],
+        y=128,
+        lines=_wrap_text(training_title, heading_font, 800)[:2],
         font=heading_font,
         fill=INK,
-        line_height=62,
+        line_height=72,
     )
 
-    summary_top = max(304, heading_bottom + 30)
-    draw.text((88, summary_top - 32), "Scenario setup", fill="#9a7b5c", font=summary_label_font)
-    draw.rounded_rectangle((82, summary_top, 820, summary_top + 150), radius=30, fill="#f7fbff", outline="#e2ebf4", width=2)
+    summary_top = max(294, heading_bottom + 28)
     _draw_wrapped_text(
         draw=draw,
-        x=118,
-        y=summary_top + 28,
-        lines=_wrap_text(_format_slide_bullet(summary, max_chars=130), summary_font, 660)[:3],
+        x=82,
+        y=summary_top,
+        lines=_wrap_text(_format_slide_bullet(summary, max_chars=180), summary_font, 770)[:3],
         font=summary_font,
-        fill="#56677f",
-        line_height=34,
+        fill="#6d6a65",
+        line_height=38,
     )
 
-    draw.rounded_rectangle((884, 194, 1188, 506), radius=34, fill="#fff8f0", outline="#f0e4d8", width=2)
-    draw.text((922, 228), "How to decide", fill="#9a7b5c", font=focus_label_font)
-    for index, step in enumerate(["Spot the cue", "Choose action", "Report fast"]):
-        y = 278 + index * 70
-        draw.ellipse((922, y, 970, y + 48), fill="#ffffff", outline="#f0d6bb", width=2)
-        draw.text((939, y + 10), str(index + 1), fill=PRIMARY, font=step_font)
-        draw.text((994, y + 8), step, fill=INK, font=step_font)
-
     focus_items = bullets[:3] or ["Follow secure data habits."]
-    card_y = 500
+    card_y = 530
     for index, bullet in enumerate(focus_items[:3]):
-        card_x = 82 + index * 272
-        draw.rounded_rectangle((card_x, card_y, card_x + 248, card_y + 86), radius=24, fill="#ffffff", outline=BORDER, width=2)
-        draw.text((card_x + 22, card_y + 16), f"0{index + 1}", fill=PRIMARY, font=focus_label_font)
+        card_x = 82 + index * 270
+        draw.line((card_x, card_y, card_x + 224, card_y), fill=INK, width=2)
+        draw.text((card_x, card_y + 18), f"0{index + 1}", fill=PRIMARY, font=step_label_font)
         _draw_wrapped_text(
             draw=draw,
-            x=card_x + 24,
-            y=card_y + 42,
-            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=38), focus_font, 198)[:2],
-            font=focus_font,
+            x=card_x,
+            y=card_y + 46,
+            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=38), step_font, 224)[:2],
+            font=step_font,
             fill=INK,
-            line_height=23,
+            line_height=27,
         )
 
-    _paste_logo_bottom_right(image, x=966, y=586)
+    _paste_logo_bottom_right(image, x=956, y=606)
     image.save(image_path)
 
 
@@ -386,82 +374,88 @@ def _render_lecture_frame(
     heading: str,
     bullets: list[str],
     example: str,
-    source_urls: list[str],
 ) -> None:
-    image = Image.new("RGB", VIDEO_SIZE, "#fffaf4")
+    image = Image.new("RGB", VIDEO_SIZE, "#f8f5ef")
     draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((34, 34, 1246, 686), radius=42, fill="#fffdf9", outline=BORDER, width=2)
-    draw.ellipse((1000, -70, 1322, 210), fill="#ffe6cf")
-    draw.rounded_rectangle((82, 72, 314, 118), radius=23, fill=PRIMARY_SOFT)
+    draw.rectangle((0, 0, 10, 720), fill=PRIMARY)
+    draw.rounded_rectangle((28, 28, 1252, 692), radius=30, outline="#ded6ca", width=2)
+    draw.ellipse((1065, -128, 1430, 212), fill="#ffe1bb")
 
-    badge_font = _load_font(18, bold=True)
-    heading_font = _select_heading_font(heading, max_width=810, large=56, medium=50, small=44)
-    section_font = _load_font(20, bold=True)
-    bullet_font = _load_font(24, bold=True)
-    example_font = _load_font(22)
-    small_font = _load_font(16, bold=True)
+    eyebrow_font = _load_font(16, bold=True)
+    heading_font = _select_heading_font(heading, max_width=820, large=64, medium=58, small=52)
+    section_font = _load_font(16, bold=True)
+    scenario_font = _load_font(27)
+    cue_font = _load_font(21, bold=True)
+    action_font = _load_font(27, bold=True)
+    takeaway_font = _load_font(21, bold=True)
 
-    draw.text((108, 86), "SCENARIO", fill=PRIMARY, font=badge_font)
+    draw.text((82, 76), "SCENARIO", fill=PRIMARY, font=eyebrow_font)
+    draw.text((1088, 76), "NEXT PHASE", fill="#847c73", font=eyebrow_font)
     heading_bottom = _draw_wrapped_text(
         draw=draw,
         x=82,
-        y=146,
-        lines=_wrap_text(heading, heading_font, 810)[:2],
+        y=126,
+        lines=_wrap_text(heading, heading_font, 820)[:2],
         font=heading_font,
         fill=INK,
-        line_height=60,
+        line_height=68,
     )
 
-    scene_top = max(284, heading_bottom + 30)
+    scene_top = max(286, heading_bottom + 32)
     callout_text = example.strip() or (bullets[0] if bullets else training_title)
-    draw.text((88, scene_top - 32), "Workplace scenario", fill="#9a7b5c", font=section_font)
-    draw.rounded_rectangle((82, scene_top, 826, scene_top + 168), radius=32, fill="#f7fbff", outline="#e2ebf4", width=2)
+    draw.text((82, scene_top - 26), "WORKPLACE SCENARIO", fill="#847c73", font=section_font)
     _draw_wrapped_text(
         draw=draw,
-        x=120,
-        y=scene_top + 30,
-        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=150), example_font, 650)[:4],
-        font=example_font,
-        fill="#56677f",
-        line_height=30,
+        x=82,
+        y=scene_top + 8,
+        lines=_wrap_text(_format_slide_bullet(callout_text, max_chars=165), scenario_font, 650)[:4],
+        font=scenario_font,
+        fill="#353231",
+        line_height=37,
     )
 
-    actions_top = scene_top + 198
-    draw.text((88, actions_top - 26), "Decision cues", fill="#9a7b5c", font=section_font)
-    draw.rounded_rectangle((82, actions_top, 826, actions_top + 96), radius=28, fill="#ffffff", outline=BORDER, width=2)
-    cursor_x = 118
+    action_top = max(244, scene_top - 12)
+    draw.rectangle((836, action_top, 1170, 522), fill=INK)
+    draw.text((872, action_top + 38), "RECOMMENDED ACTION", fill="#ffbd7b", font=section_font)
+    _draw_wrapped_text(
+        draw=draw,
+        x=872,
+        y=action_top + 94,
+        lines=_wrap_text(_format_slide_bullet(bullets[0] if bullets else callout_text, max_chars=115), action_font, 252)[:6],
+        font=action_font,
+        fill="#ffffff",
+        line_height=35,
+    )
+
+    cues_top = 472
+    draw.line((82, cues_top, 742, cues_top), fill=INK, width=2)
+    draw.text((82, cues_top + 20), "DECISION CUES", fill="#847c73", font=section_font)
     for index, bullet in enumerate((bullets[:3] or ["Apply the recommended compliance habit."])[:3]):
-        pill_width = 214
-        draw.rounded_rectangle((cursor_x, actions_top + 22, cursor_x + pill_width, actions_top + 72), radius=22, fill="#fff7ef", outline="#f0e0cf", width=1)
-        draw.text((cursor_x + 18, actions_top + 36), f"0{index + 1}", fill=PRIMARY, font=small_font)
+        cue_x = 82 + index * 220
+        draw.text((cue_x, cues_top + 54), f"0{index + 1}", fill=PRIMARY, font=section_font)
         _draw_wrapped_text(
             draw=draw,
-            x=cursor_x + 52,
-            y=actions_top + 31,
-            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=32), bullet_font, 144)[:1],
-            font=bullet_font,
+            x=cue_x,
+            y=cues_top + 78,
+            lines=_wrap_text(_format_slide_bullet(bullet, max_chars=30), cue_font, 190)[:2],
+            font=cue_font,
             fill=INK,
-            line_height=26,
+            line_height=25,
         )
-        cursor_x += pill_width + 22
 
-    draw.rounded_rectangle((878, 218, 1186, 526), radius=34, fill="#fff8f0", outline="#f0e4d8", width=2)
-    draw.rounded_rectangle((910, 252, 1070, 296), radius=22, fill="#ffffff")
-    draw.text((936, 265), "CHOICE", fill=PRIMARY, font=small_font)
+    takeaway_top = 610
+    draw.line((82, takeaway_top, 824, takeaway_top), fill="#ded6ca", width=1)
+    draw.text((82, takeaway_top + 18), "TAKEAWAY", fill=PRIMARY, font=section_font)
     _draw_wrapped_text(
         draw=draw,
-        x=916,
-        y=330,
-        lines=_wrap_text(_format_slide_bullet(bullets[0] if bullets else callout_text, max_chars=100), example_font, 232)[:5],
-        font=example_font,
+        x=212,
+        y=takeaway_top + 16,
+        lines=_wrap_text(_format_slide_bullet(bullets[-1] if bullets else heading, max_chars=64), takeaway_font, 580)[:2],
+        font=takeaway_font,
         fill=INK,
-        line_height=30,
+        line_height=24,
     )
-
-    draw.rounded_rectangle((82, 548, 826, 612), radius=24, fill="#fff7ef", outline="#f0e0cf", width=2)
-    draw.text((112, 570), "Takeaway:", fill=PRIMARY, font=section_font)
-    draw.text((242, 570), _format_slide_bullet(bullets[-1] if bullets else heading, max_chars=50), fill=INK, font=section_font)
-    _paste_logo_bottom_right(image, x=966, y=586)
+    _paste_logo_bottom_right(image, x=956, y=606)
     image.save(image_path)
 
 

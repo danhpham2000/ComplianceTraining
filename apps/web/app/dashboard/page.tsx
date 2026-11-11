@@ -100,7 +100,7 @@ export default function DashboardPage() {
               </Button>
             </div>
 
-            <div className="hidden rounded-[0.95rem] border border-border bg-[#f8f9fc] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7b8ca5] md:grid md:grid-cols-[minmax(0,1.45fr)_120px_120px_40px]">
+            <div className="hidden rounded-[0.95rem] border border-border bg-[#f8f9fc] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7b8ca5] md:grid md:grid-cols-[minmax(0,1.45fr)_106px_96px_24px]">
               <span>Module</span>
               <span>Status</span>
               <span>Questions</span>
@@ -112,7 +112,7 @@ export default function DashboardPage() {
                 <Link
                   key={training.id}
                   href={`/training/${training.id}`}
-                  className="grid gap-2.5 rounded-[1rem] border border-border bg-white px-4 py-3 transition hover:border-primary/18 hover:bg-[#fffdf9] md:grid-cols-[minmax(0,1.45fr)_120px_120px_40px] md:items-center"
+                  className="grid gap-2.5 rounded-[1rem] border border-border bg-white px-3 py-2.5 transition hover:border-primary/18 hover:bg-[#fffdf9] md:grid-cols-[minmax(0,1.45fr)_106px_96px_24px] md:items-center"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">{training.title}</p>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
                       {training.content_source?.title ?? "Source attached during review"}
                     </p>
                   </div>
-                  <TrainingStatusBadge status={training.status} />
+                  <TrainingStatusBadge status={training.status} className="justify-self-start" />
                   <span className="text-[13px] text-[#66768f]">{training.question_count} items</span>
                   <span className="text-right text-base text-[#a1adbc]">›</span>
                 </Link>
