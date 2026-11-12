@@ -26,6 +26,7 @@ export function CourseVideoPlayer({
   onWatchProgress,
   onVideoComplete,
 }: CourseVideoPlayerProps) {
+  const mediaUrl = resolveMediaUrl(url);
   const nativeVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingIntervalRef = useRef<number | null>(null);
   const lastObservedTimeRef = useRef<number | null>(null);
@@ -119,7 +120,7 @@ export function CourseVideoPlayer({
     };
   }, [stopTracking]);
 
-  if (!url || !isVideoUrl(url)) {
+  if (!mediaUrl || !isVideoUrl(mediaUrl)) {
     return (
       <VideoFallback
         title="Embedded preview unavailable"
@@ -149,7 +150,7 @@ export function CourseVideoPlayer({
             onVideoCompleteRef.current?.();
           }}
         >
-          <source src={url} />
+          <source src={mediaUrl} />
         </video>
       </div>
 
@@ -164,7 +165,7 @@ export function CourseVideoPlayer({
           variant="outline"
           className="h-10 rounded-full border-border bg-white px-4 text-[#5b6f8c] shadow-none hover:bg-[#f7f9fc] hover:text-foreground"
         >
-          <a href={url} target="_blank" rel="noreferrer">
+          <a href={mediaUrl} target="_blank" rel="noreferrer">
             <ExternalLink className="size-4" />
             {fallbackLabel}
           </a>
@@ -196,4 +197,15 @@ function isVideoUrl(url?: string | null) {
   } catch {
     return false;
   }
+}
+
+function resolveMediaUrl(url?: string | null) {
+  if (!url?.startsWith("/generated/")) {
+    return url;
+  }
+  const origin =
+    typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)
+      ? "http://127.0.0.1:8000"
+      : "https://compliance-training-api-production.up.railway.app";
+  return `${origin}${url}`;
 }
