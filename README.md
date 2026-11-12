@@ -24,7 +24,7 @@ The root `.env` must contain:
 
 - `DATABASE_URL`
 - `OPENROUTER_API_KEY`
-- `OPENROUTER_MODEL` (defaults to `openrouter/free`)
+- `OPENROUTER_MODEL` (defaults to `openai/gpt-5.4-mini`)
 
 OpenRouter generates research, scripts, slide content, quizzes, and narration. Lecture and cartoon MP4s are rendered locally with Pillow and ffmpeg.
 

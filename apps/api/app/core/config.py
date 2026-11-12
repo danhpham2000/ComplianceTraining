@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     database_url: str
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "openrouter/free"
+    openrouter_model: str = "openai/gpt-5.4-mini"
     openrouter_tts_model: str = "google/gemini-3.8-flash-tts"
     openrouter_tts_voice: str = "Kore"
     firecrawl_api_key: str | None = None
